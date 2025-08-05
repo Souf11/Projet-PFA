@@ -1,0 +1,62 @@
+/* /src/assets/styles/complaintCard.css */
+.complaint-card {
+  padding: 20px;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+}
+
+.complaint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.complaint-header h3 {
+  font-size: 1.2rem;
+  color: var(--dark);
+}
+
+.complaint-status {
+  padding: 5px 10px;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.complaint-details {
+  margin-bottom: 15px;
+}
+
+.detail {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--gray);
+  min-width: 120px;
+}
+
+.complaint-description {
+  margin-top: 5px;
+  color: var(--dark);
+}
+
+.complaint-response {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  margin-top: 15px;
+}
+
+.complaint-response h4 {
+  margin-bottom: 10px;
+  color: var(--primary);
+}

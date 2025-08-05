@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login</title>
+</head>
+<body>
+    <h1>Test de Connexion</h1>
+    <form id="loginForm">
+        <input type="email" id="email" placeholder="Email" value="ana@ana" required><br><br>
+        <input type="password" id="password" placeholder="Password" value="ana" required><br><br>
+        <button type="submit">Se connecter</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    resultDiv.innerHTML = `
+                        <h3>✅ Connexion réussie!</h3>
+                        <p>Token: ${data.token.substring(0, 50)}...</p>
+                        <p>User: ${JSON.stringify(data.user)}</p>
+                        <p><a href="http://localhost:3000" target="_blank">Aller à l'app</a></p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<h3>❌ Erreur: ${data.message}</h3>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>❌ Erreur réseau: ${error.message}</h3>`;
+            }
+        });
+    </script>
+</body>
+</html> 
