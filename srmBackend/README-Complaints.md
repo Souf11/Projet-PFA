@@ -45,10 +45,10 @@ Les réclamations peuvent être de type :
 
 ## 📊 Statuts des Réclamations
 
-- `pending` - En attente (par défaut)
-- `in_progress` - En cours de traitement
-- `resolved` - Résolu
-- `closed` - Fermé
+- `en attente` - En attente (par défaut)
+- `en cours` - En cours de traitement
+- `résolue` - Résolue
+- `rejetée` - Rejetée
 
 ## 💻 Exemples d'Utilisation
 
@@ -175,4 +175,4 @@ Les réclamations sont validées avec les règles suivantes :
 - ✅ Authentification JWT obligatoire
 - ✅ Validation des données d'entrée
 - ✅ Les utilisateurs ne peuvent voir que leurs propres réclamations
-- ✅ Les utilisateurs ne peuvent modifier que leurs réclamations en attente 
+- ✅ Les utilisateurs ne peuvent modifier que leurs réclamations en attente

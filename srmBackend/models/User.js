@@ -3,11 +3,11 @@ const bcrypt = require('bcrypt');
 
 const User = {
   async findByEmail(email) {
-  const [rows] = await pool.query('SELECT id, name, email, address, password_hash FROM users WHERE email = ?', [email]);
+  const [rows] = await pool.query('SELECT id, name, email, address, phone, password_hash FROM users WHERE email = ?', [email]);
   return rows[0];
   },
 
-  async create({ name, email, password, address }) {
+  async create({ name, email, password, address, phone }) {
     // Validation simple (comme dans le schéma Mongoose)
     if (!name || !email || !password || !address) {
       throw new Error('All fields are required');
@@ -21,15 +21,15 @@ const User = {
     const password_hash = await bcrypt.hash(password, 10);
     // Insertion
     const [result] = await pool.query(
-      'INSERT INTO users (name, email, password_hash, address) VALUES (?, ?, ?, ?)',
-      [name, email, password_hash, address]
+      'INSERT INTO users (name, email, password_hash, address, phone) VALUES (?, ?, ?, ?, ?)',
+      [name, email, password_hash, address, phone || null]
     );
     return result.insertId;
   },
 
   async findById(id) {
     const [rows] = await pool.query(
-      'SELECT id, name, email, address FROM users WHERE id = ?',
+      'SELECT id, name, email, address, phone FROM users WHERE id = ?',
       [id]
     );
     return rows[0];

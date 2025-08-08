@@ -45,9 +45,9 @@ const AdminNavbar = ({ view, setView }) => {
           Voir les utilisateurs
         </button>
         <button 
-          onClick={() => setView('collaborators')}
+          onClick={() => setView('techniciens')}
           style={{
-            backgroundColor: view === 'collaborators' ? '#3498db' : 'transparent',
+            backgroundColor: view === 'techniciens' ? '#3498db' : 'transparent',
             color: 'white',
             border: '1px solid white',
             padding: '0.5rem 1rem',
@@ -56,12 +56,12 @@ const AdminNavbar = ({ view, setView }) => {
             fontWeight: '600'
           }}
         >
-          Voir les collaborateurs
+          Voir les techniciens
         </button>
         <button 
-          onClick={() => setView('create')}
+          onClick={() => setView('agents')}
           style={{
-            backgroundColor: view === 'create' ? '#3498db' : 'transparent',
+            backgroundColor: view === 'agents' ? '#3498db' : 'transparent',
             color: 'white',
             border: '1px solid white',
             padding: '0.5rem 1rem',
@@ -70,7 +70,49 @@ const AdminNavbar = ({ view, setView }) => {
             fontWeight: '600'
           }}
         >
-          Créer un collaborateur
+          Voir les agents
+        </button>
+        <button 
+          onClick={() => setView('create-technicien')}
+          style={{
+            backgroundColor: view === 'create-technicien' ? '#3498db' : 'transparent',
+            color: 'white',
+            border: '1px solid white',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: '600'
+          }}
+        >
+          Créer un technicien
+        </button>
+        <button 
+          onClick={() => setView('create-agent')}
+          style={{
+            backgroundColor: view === 'create-agent' ? '#3498db' : 'transparent',
+            color: 'white',
+            border: '1px solid white',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: '600'
+          }}
+        >
+          Créer un agent
+        </button>
+        <button 
+          onClick={() => setView('create-user')}
+          style={{
+            backgroundColor: view === 'create-user' ? '#3498db' : 'transparent',
+            color: 'white',
+            border: '1px solid white',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: '600'
+          }}
+        >
+          Créer un utilisateur
         </button>
         <button 
           onClick={handleLogout}
@@ -92,4 +134,4 @@ const AdminNavbar = ({ view, setView }) => {
   );
 };
 
-export default AdminNavbar; 
+export default AdminNavbar;

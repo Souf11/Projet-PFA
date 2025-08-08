@@ -7,7 +7,7 @@ const FIXED_ADMIN_PASSWORD = 'admin123'; // In production, use env vars!
 
 const register = async (req, res) => {
   try {
-    const { name, email, password, address } = req.body;
+    const { name, email, password, address, phone } = req.body;
 
     // Validation robuste
     if (!name || !email || !password || !address) {
@@ -18,7 +18,8 @@ const register = async (req, res) => {
           name: 'string',
           email: 'string',
           password: 'string (min 6 caractères)',
-          address: 'string'
+          address: 'string',
+          phone: 'string (optionnel)'
         }
       });
     }
@@ -39,10 +40,10 @@ const register = async (req, res) => {
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Créer l'utilisateur avec le rôle par défaut 'user'
+    // Créer l'utilisateur avec le rôle par défaut 'utilisateur'
     const [result] = await pool.query(
-      'INSERT INTO users (name, email, password_hash, address, role) VALUES (?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, address, 'user']
+      'INSERT INTO users (name, email, password_hash, address, phone, role) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, address, phone || null, 'utilisateur']
     );
 
     const userId = result.insertId;
@@ -53,7 +54,7 @@ const register = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: userId, email, role: 'user' },
+      { id: userId, email, role: 'utilisateur' },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -62,7 +63,7 @@ const register = async (req, res) => {
       success: true,
       token,
       userId,
-      user: { id: userId, name, email, address, role: 'user' }
+      user: { id: userId, name, email, address, phone, role: 'utilisateur' }
     });
 
   } catch (error) {
@@ -155,6 +156,7 @@ const login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role
       }
     });

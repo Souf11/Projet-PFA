@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import CollaboratorNavbar from '../components/CollaboratorNavbar';
+import TechnicienNavbar from '../components/TechnicienNavbar';
+import StatusHistory from '../components/StatusHistory';
 import '../assets/styles/global.css';
+import '../assets/styles/statusHistory.css';
 
 function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -51,39 +53,27 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return '#f39c12';
-      case 'in_progress': return '#3498db';
-      case 'resolved': return '#27ae60';
-      case 'rejected': return '#e74c3c';
+      case 'en attente': return '#f39c12';
+      case 'en cours': return '#3498db';
+      case 'résolue': return '#27ae60';
+      case 'rejetée': return '#e74c3c';
       default: return '#95a5a6';
     }
   };
 
   const getStatusLabel = (status) => {
-    switch (status) {
-      case 'pending': return 'En attente';
-      case 'in_progress': return 'En cours';
-      case 'resolved': return 'Résolu';
-      case 'rejected': return 'Rejeté';
-      default: return status;
-    }
+    // Status values are already in French in the database
+    return status;
   };
 
   const getTypeLabel = (type) => {
-    console.log('CollaboratorDashboard - Received type:', type); // Debug log
+    console.log('TechnicienDashboard - Received type:', type); // Debug log
     const types = {
-      'billing': 'Facturation',
-      'technical': 'Technique',
-      'service': 'Service client',
-      'other': 'Autre',
-      'invoice': 'Facturation',
-      'meter': 'Compteur',
-      'facture': 'Problème avec une facture',
-      'compteur': 'Problème avec le compteur',
-      'autre': 'Autre'
+      'eau': 'Eau',
+      'electricite': 'Électricité'
     };
     const result = types[type] || type;
-    console.log('CollaboratorDashboard - Mapped to:', result); // Debug log
+    console.log('TechnicienDashboard - Mapped to:', result); // Debug log
     return result;
   };
 
@@ -105,9 +95,11 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
             <tr style={{background: '#f5f7fa'}}>
               <th>ID</th>
               <th>Utilisateur</th>
-              <th>Sujet</th>
+              <th>Objet</th>
               <th>Type</th>
+              <th>Nom Client</th>
               <th>Téléphone</th>
+              <th>Adresse</th>
               <th>Statut</th>
               <th>Date</th>
               <th>Actions</th>
@@ -117,10 +109,12 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
             {complaints.map(complaint => (
               <tr key={complaint.id} style={{borderBottom: '1px solid #eee'}}>
                 <td style={{textAlign: 'center'}}>{complaint.id}</td>
-                <td style={{textAlign: 'center'}}>{complaint.user_name}</td>
-                <td style={{textAlign: 'center'}}>{complaint.subject}</td>
+                <td style={{textAlign: 'center'}}>{complaint.created_by_name}</td>
+                <td style={{textAlign: 'center'}}>{complaint.objet}</td>
                 <td style={{textAlign: 'center'}}>{getTypeLabel(complaint.type)}</td>
-                <td style={{textAlign: 'center'}}>{complaint.phone_number || 'N/A'}</td>
+                <td style={{textAlign: 'center'}}>{complaint.client_nom || 'N/A'}</td>
+                <td style={{textAlign: 'center'}}>{complaint.client_telephone || 'N/A'}</td>
+                <td style={{textAlign: 'center'}}>{complaint.client_adresse || 'N/A'}</td>
                 <td style={{textAlign: 'center'}}>
                   <span style={{
                     backgroundColor: getStatusColor(complaint.status),
@@ -178,16 +172,24 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
           }}>
             <h3>Modifier la réclamation #{selectedComplaint.id}</h3>
             <div style={{marginBottom: '1rem'}}>
-              <strong>Sujet:</strong> {selectedComplaint.subject}
+              <strong>Client:</strong>
+              <div style={{marginTop: '4px', marginLeft: '8px', textAlign: 'left'}}>
+                <div><strong>Nom:</strong> {selectedComplaint.client_nom || 'N/A'}</div>
+                <div><strong>Téléphone:</strong> {selectedComplaint.client_telephone || 'N/A'}</div>
+                <div><strong>Adresse:</strong> {selectedComplaint.client_adresse || 'N/A'}</div>
+              </div>
             </div>
             <div style={{marginBottom: '1rem'}}>
-              <strong>Utilisateur:</strong> {selectedComplaint.user_name}
+              <strong>Objet:</strong> {selectedComplaint.objet}
+            </div>
+            <div style={{marginBottom: '1rem'}}>
+              <strong>Utilisateur:</strong> {selectedComplaint.created_by_name}
             </div>
             <div style={{marginBottom: '1rem'}}>
               <strong>Type:</strong> {getTypeLabel(selectedComplaint.type)}
             </div>
             <div style={{marginBottom: '1rem'}}>
-              <strong>Téléphone:</strong> {selectedComplaint.phone_number || 'Non fourni'}
+              <strong>Description:</strong> {selectedComplaint.description}
             </div>
             <div style={{marginBottom: '1rem'}}>
               <label>Nouveau statut:</label>
@@ -197,10 +199,10 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
                 style={{marginLeft: '10px', padding: '4px'}}
               >
                 <option value="">Sélectionner...</option>
-                <option value="pending">En attente</option>
-                <option value="in_progress">En cours</option>
-                <option value="resolved">Résolu</option>
-                <option value="rejected">Rejeté</option>
+                <option value="en attente">En attente</option>
+                <option value="en cours">En cours</option>
+                <option value="résolue">Résolue</option>
+                <option value="rejetée">Rejetée</option>
               </select>
             </div>
             <div style={{marginBottom: '1rem'}}>
@@ -219,7 +221,11 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
                 }}
               />
             </div>
-            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+            <div style={{marginTop: '20px'}}>
+              <StatusHistory reclamationId={selectedComplaint.id} />
+            </div>
+            
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
               <button 
                 onClick={() => {
                   setSelectedComplaint(null);
@@ -265,7 +271,7 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
 
 
 
-export default function CollaboratorDashboard() {
+export default function TechnicienDashboard() {
   const [view, setView] = useState('complaints');
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState([]);
@@ -275,15 +281,17 @@ export default function CollaboratorDashboard() {
     try {
       const token = localStorage.getItem('token');
       
-      // Fetch complaints
+      // Fetch complaints assigned to the technician
       try {
-        const complaintsRes = await fetch('http://localhost:3001/api/admin/complaints', {
+        const complaintsRes = await fetch('http://localhost:3001/api/complaints/technicien/assigned', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (complaintsRes.ok) {
           const complaintsData = await complaintsRes.json();
+          console.log('Réclamations assignées récupérées:', complaintsData);
           setComplaints(Array.isArray(complaintsData) ? complaintsData : []);
         } else {
+          console.error('Erreur lors de la récupération des réclamations:', await complaintsRes.text());
           setComplaints([]);
         }
       } catch (err) {
@@ -319,7 +327,7 @@ export default function CollaboratorDashboard() {
 
   return (
     <div>
-      <CollaboratorNavbar view={view} setView={setView} />
+      <TechnicienNavbar view={view} setView={setView} />
       <div className="container mt-3" style={{ textAlign: 'center', marginTop: '80px' }}>
         {loading && <div className="card">Chargement...</div>}
         {!loading && view === 'complaints' && <ComplaintsManagement complaints={complaints} onUpdateComplaint={updateComplaint} fetchData={fetchData} />}

@@ -1,48 +1,70 @@
 // /controllers/complaintController.js
 const pool = require('../config/db');
 const { validateComplaint } = require('../utils/validation');
+const Client = require('../models/Client');
+const Contrat = require('../models/Contrat');
+const Complaint = require('../models/Complaint');
+const User = require('../models/User');
+const StatusHistory = require('../models/StatusHistory');
 
 const complaintController = {
   // Créer une nouvelle réclamation
   createComplaint: async (req, res) => {
     try {
-      const { invoice_id, type, subject, description, phone_number } = req.body;
-      const user_id = req.user.id; // ID de l'utilisateur authentifié
+      const { objet, description, client_id, contrat_id, contrat_numero, type, phone_number } = req.body;
+      const created_by = req.user.id; // ID de l'utilisateur authentifié
+      let finalContratId = contrat_id;
+      let finalClientId = client_id;
 
       // Validation des données
-      const { error } = validateComplaint({ type, subject, description });
+      const { error } = validateComplaint({ objet, description });
       if (error) {
         return res.status(400).json({ message: error.details[0].message });
       }
 
-      // Vérifier si invoice_id est fourni et valide
-      let finalInvoiceId = null;
-      if (invoice_id && invoice_id !== '') {
-        // Vérifier si l'invoice existe
-        const [invoiceCheck] = await pool.query(
-          'SELECT id FROM invoices WHERE id = ?',
-          [invoice_id]
-        );
+      // Si un numéro de contrat est fourni, rechercher le contrat correspondant
+      if (contrat_numero && !contrat_id) {
+        console.log('Recherche du contrat avec numéro:', contrat_numero);
+        const contrat = await Contrat.findByNumero(contrat_numero);
         
-        if (invoiceCheck.length === 0) {
-          return res.status(400).json({ 
-            message: 'Invoice ID invalide ou inexistant' 
-          });
+        if (!contrat) {
+          return res.status(404).json({ message: 'Contrat non trouvé avec ce numéro' });
         }
-        finalInvoiceId = invoice_id;
+        
+        finalContratId = contrat.id;
+        finalClientId = contrat.client_id;
+        
+        console.log('Contrat trouvé:', contrat);
+        console.log('Client associé ID:', finalClientId);
+      }
+      
+      // Vérifier que le client existe
+      if (finalClientId) {
+        const client = await Client.findById(finalClientId);
+        if (!client) {
+          return res.status(404).json({ message: 'Client non trouvé' });
+        }
+      }
+
+      // Vérifier que le contrat existe
+      if (finalContratId) {
+        const contrat = await Contrat.findById(finalContratId);
+        if (!contrat) {
+          return res.status(404).json({ message: 'Contrat non trouvé' });
+        }
       }
 
       // Insertion dans la base de données
       const [result] = await pool.query(
-        `INSERT INTO complaints 
-        (user_id, invoice_id, type, subject, description, phone_number, status) 
-        VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-        [user_id, finalInvoiceId, type, subject, description, phone_number || null]
+        `INSERT INTO srmdb.reclamations 
+        (created_by, objet, description, contrat_id, client_id, status, created_at, type) 
+        VALUES (?, ?, ?, ?, ?, 'en attente', NOW(), ?)`,
+        [created_by, objet, description, finalContratId || null, finalClientId || null, type || 'standard']
       );
 
       // Récupération de la réclamation créée
       const [rows] = await pool.query(
-        'SELECT * FROM complaints WHERE id = ?',
+        'SELECT * FROM srmdb.reclamations WHERE id = ?',
         [result.insertId]
       );
 
@@ -56,18 +78,22 @@ const complaintController = {
   // Lister toutes les réclamations de l'utilisateur
   getAllComplaints: async (req, res) => {
     try {
-      const user_id = req.user.id;
+      const created_by = req.user.id;
       
-      const [complaints] = await pool.query(
-        `SELECT c.*, i.invoice_number 
-         FROM complaints c
-         LEFT JOIN invoices i ON c.invoice_id = i.id
-         WHERE c.user_id = ?
-         ORDER BY c.created_at DESC`,
-        [user_id]
+      const [reclamations] = await pool.query(
+        `SELECT r.*, u.name as assigned_to_name, 
+         c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+         ct.numero_contrat, ct.type_service
+         FROM srmdb.reclamations r
+         LEFT JOIN srmdb.users u ON r.assigned_to = u.id
+         LEFT JOIN srmdb.clients c ON r.client_id = c.id
+         LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+         WHERE r.created_by = ?
+         ORDER BY r.created_at DESC`,
+        [created_by]
       );
 
-      res.json(complaints);
+      res.json(reclamations);
     } catch (error) {
       console.error('Erreur récupération réclamations:', error);
       res.status(500).json({ message: 'Erreur serveur' });
@@ -78,14 +104,18 @@ const complaintController = {
   getComplaintById: async (req, res) => {
     try {
       const { id } = req.params;
-      const user_id = req.user.id;
+      const created_by = req.user.id;
 
       const [rows] = await pool.query(
-        `SELECT c.*, i.invoice_number 
-         FROM complaints c
-         LEFT JOIN invoices i ON c.invoice_id = i.id
-         WHERE c.id = ? AND c.user_id = ?`,
-        [id, user_id]
+        `SELECT r.*, u.name as assigned_to_name, 
+         c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+         ct.numero_contrat, ct.type_service
+         FROM srmdb.reclamations r
+         LEFT JOIN srmdb.users u ON r.assigned_to = u.id
+         LEFT JOIN srmdb.clients c ON r.client_id = c.id
+         LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+         WHERE r.id = ? AND r.created_by = ?`,
+        [id, created_by]
       );
 
       if (rows.length === 0) {
@@ -103,33 +133,33 @@ const complaintController = {
   updateComplaint: async (req, res) => {
     try {
       const { id } = req.params;
-      const user_id = req.user.id;
+      const created_by = req.user.id;
       const { description } = req.body;
 
       // Vérifier que la réclamation appartient à l'utilisateur
       const [check] = await pool.query(
-        'SELECT * FROM complaints WHERE id = ? AND user_id = ?',
-        [id, user_id]
+        'SELECT * FROM srmdb.reclamations WHERE id = ? AND created_by = ?',
+        [id, created_by]
       );
 
       if (check.length === 0) {
         return res.status(404).json({ message: 'Réclamation non trouvée' });
       }
 
-      // Mise à jour uniquement si le statut est "pending"
-      if (check[0].status !== 'pending') {
+      // Mise à jour uniquement si le statut est "en attente"
+      if (check[0].status !== 'en attente') {
         return res.status(400).json({ message: 'Seules les réclamations en attente peuvent être modifiées' });
       }
 
       // Mettre à jour la description
       await pool.query(
-        'UPDATE complaints SET description = ? WHERE id = ?',
+        'UPDATE srmdb.reclamations SET description = ? WHERE id = ?',
         [description, id]
       );
 
       // Récupérer la réclamation mise à jour
       const [updated] = await pool.query(
-        'SELECT * FROM complaints WHERE id = ?',
+        'SELECT * FROM srmdb.reclamations WHERE id = ?',
         [id]
       );
 
@@ -144,12 +174,12 @@ const complaintController = {
   deleteComplaint: async (req, res) => {
     try {
       const { id } = req.params;
-      const user_id = req.user.id;
+      const created_by = req.user.id;
 
       // Vérifier que la réclamation appartient à l'utilisateur
       const [check] = await pool.query(
-        'SELECT * FROM complaints WHERE id = ? AND user_id = ?',
-        [id, user_id]
+        'SELECT * FROM srmdb.reclamations WHERE id = ? AND created_by = ?',
+        [id, created_by]
       );
 
       if (check.length === 0) {
@@ -158,13 +188,193 @@ const complaintController = {
 
       // Suppression
       await pool.query(
-        'DELETE FROM complaints WHERE id = ?',
+        'DELETE FROM srmdb.reclamations WHERE id = ?',
         [id]
       );
 
       res.status(204).send();
     } catch (error) {
       console.error('Erreur suppression réclamation:', error);
+      res.status(500).json({ message: 'Erreur serveur' });
+    }
+  },
+
+  // Affecter une réclamation à un technicien (pour les agents)
+  assignComplaint: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { technicien_id } = req.body;
+      const agent_id = req.user.id;
+
+      // Vérifier que l'utilisateur est un agent
+      if (req.user.role !== 'agent' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Seuls les agents peuvent affecter des réclamations' });
+      }
+
+      // Vérifier que la réclamation existe
+      const [reclamation] = await pool.query(
+        'SELECT * FROM srmdb.reclamations WHERE id = ?',
+        [id]
+      );
+
+      if (reclamation.length === 0) {
+        return res.status(404).json({ message: 'Réclamation non trouvée' });
+      }
+
+      // Vérifier que le technicien existe et a le rôle technicien
+      const [technicien] = await pool.query(
+        'SELECT * FROM srmdb.users WHERE id = ? AND role = "technicien"',
+        [technicien_id]
+      );
+
+      if (technicien.length === 0) {
+        return res.status(404).json({ message: 'Technicien non trouvé' });
+      }
+
+      // Mettre à jour la réclamation avec le technicien assigné
+      const oldStatus = reclamation[0].status;
+      const newStatus = 'en cours';
+
+      await pool.query(
+        'UPDATE srmdb.reclamations SET assigned_to = ?, status = ? WHERE id = ?',
+        [technicien_id, newStatus, id]
+      );
+
+      // Enregistrer le changement de statut dans l'historique
+      await StatusHistory.create({
+        reclamation_id: id,
+        old_status: oldStatus,
+        new_status: newStatus,
+        changed_by: agent_id
+      });
+
+      // Récupérer la réclamation mise à jour avec toutes les informations du client
+      const [updated] = await pool.query(
+        `SELECT r.*, u1.name as created_by_name, u2.name as assigned_to_name,
+         c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+         ct.numero_contrat, ct.type_service
+         FROM srmdb.reclamations r
+         JOIN srmdb.users u1 ON r.created_by = u1.id
+         LEFT JOIN srmdb.users u2 ON r.assigned_to = u2.id
+         LEFT JOIN srmdb.clients c ON r.client_id = c.id
+         LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+         WHERE r.id = ?`,
+        [id]
+      );
+
+      res.json(updated[0]);
+    } catch (error) {
+      console.error('Erreur affectation réclamation:', error);
+      res.status(500).json({ message: 'Erreur serveur' });
+    }
+  },
+
+  // Mettre à jour le statut d'une réclamation
+  updateComplaintStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      const user_id = req.user.id;
+
+      // Vérifier que la réclamation existe
+      const [reclamation] = await pool.query(
+        'SELECT * FROM srmdb.reclamations WHERE id = ?',
+        [id]
+      );
+
+      if (reclamation.length === 0) {
+        return res.status(404).json({ message: 'Réclamation non trouvée' });
+      }
+
+      // Vérifier que l'utilisateur est autorisé à mettre à jour le statut
+      if (req.user.role !== 'admin' && req.user.role !== 'agent' && 
+          (req.user.role === 'technicien' && reclamation[0].assigned_to !== user_id)) {
+        return res.status(403).json({ message: 'Non autorisé à mettre à jour cette réclamation' });
+      }
+
+      // Mettre à jour le statut
+      const oldStatus = reclamation[0].status;
+      await pool.query(
+        'UPDATE srmdb.reclamations SET status = ? WHERE id = ?',
+        [status, id]
+      );
+
+      // Enregistrer le changement de statut dans l'historique
+      await StatusHistory.create({
+        reclamation_id: id,
+        old_status: oldStatus,
+        new_status: status,
+        changed_by: user_id
+      });
+
+      // Récupérer la réclamation mise à jour avec toutes les informations du client
+      const [updated] = await pool.query(
+        `SELECT r.*, u1.name as created_by_name, u2.name as assigned_to_name,
+         c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+         ct.numero_contrat, ct.type_service
+         FROM srmdb.reclamations r
+         JOIN srmdb.users u1 ON r.created_by = u1.id
+         LEFT JOIN srmdb.users u2 ON r.assigned_to = u2.id
+         LEFT JOIN srmdb.clients c ON r.client_id = c.id
+         LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+         WHERE r.id = ?`,
+        [id]
+      );
+
+      res.json(updated[0]);
+    } catch (error) {
+      console.error('Erreur mise à jour statut réclamation:', error);
+      res.status(500).json({ message: 'Erreur serveur' });
+    }
+  },
+
+  // Lister toutes les réclamations (pour admin et agents)
+  getAllComplaintsAdmin: async (req, res) => {
+    try {
+      const { status, client_id } = req.query;
+      
+      // Vérifier que l'utilisateur est un admin ou un agent
+      if (req.user.role !== 'admin' && req.user.role !== 'agent') {
+        return res.status(403).json({ message: 'Accès non autorisé' });
+      }
+
+      // Récupérer toutes les réclamations avec filtres optionnels
+      const reclamations = await Complaint.findAll(status, client_id);
+
+      res.json(reclamations);
+    } catch (error) {
+      console.error('Erreur récupération réclamations:', error);
+      res.status(500).json({ message: 'Erreur serveur' });
+    }
+  },
+
+  // Lister toutes les réclamations assignées à un technicien
+  getTechnicienComplaints: async (req, res) => {
+    try {
+      const technicien_id = req.user.id;
+      
+      // Vérifier que l'utilisateur est un technicien
+      if (req.user.role !== 'technicien' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Accès non autorisé' });
+      }
+
+      // Récupérer les réclamations assignées au technicien
+      const [reclamations] = await pool.query(
+        `SELECT r.*, u1.name as created_by_name,
+         c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+         ct.numero_contrat, ct.type_service
+         FROM srmdb.reclamations r
+         JOIN srmdb.users u1 ON r.created_by = u1.id
+         LEFT JOIN srmdb.clients c ON r.client_id = c.id
+         LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+         WHERE r.assigned_to = ?
+         ORDER BY r.created_at DESC`,
+        [technicien_id]
+      );
+
+      res.json(reclamations);
+    } catch (error) {
+      console.error('Erreur récupération réclamations technicien:', error);
       res.status(500).json({ message: 'Erreur serveur' });
     }
   }

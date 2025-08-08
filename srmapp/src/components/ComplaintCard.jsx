@@ -32,10 +32,10 @@ const ComplaintCard = ({ complaint }) => {
 
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'pending': return 'En attente';
-      case 'in_progress': return 'En cours';
-      case 'resolved': return 'Résolu';
-      case 'rejected': return 'Rejeté';
+      case 'en attente': return 'En attente';
+      case 'en cours': return 'En cours';
+      case 'résolue': return 'Résolue';
+      case 'rejetée': return 'Rejetée';
       default: return status;
     }
   };
@@ -72,7 +72,7 @@ const ComplaintCard = ({ complaint }) => {
         <p className="complaint-description">{complaint.description}</p>
       </div>
 
-      {/* Show response from collaborator if available */}
+      {/* Show response from technicien if available */}
       {complaint.response && (
         <div className="complaint-response" style={{
           marginTop: '1rem',

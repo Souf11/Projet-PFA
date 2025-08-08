@@ -55,6 +55,14 @@ app.use('/api/complaints', complaintRoutes);
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
 
+// Monte les routes clients sous /api/clients
+const clientRoutes = require('./routes/clientRoutes');
+app.use('/api/clients', clientRoutes);
+
+// Monte les routes demandes sous /api/demandes
+const demandeRoutes = require('./routes/demandeRoutes');
+app.use('/api/demandes', demandeRoutes);
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });

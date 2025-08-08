@@ -2,34 +2,32 @@ const pool = require('./config/db');
 
 async function setupComplaintsTable() {
   try {
-    console.log('🔧 Configuration de la table complaints...');
+    console.log('🔧 Configuration de la table reclamations...');
     
-    // Création de la table complaints
+    // Création de la table reclamations
     const createTableQuery = `
-      CREATE TABLE IF NOT EXISTS complaints (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        user_id INT NOT NULL,
-        invoice_id INT,
-        type ENUM('facture', 'service', 'compteur', 'autre') NOT NULL,
-        subject VARCHAR(100) NOT NULL,
+      CREATE TABLE IF NOT EXISTS srmdb.reclamations (
+        id INT(11) PRIMARY KEY AUTO_INCREMENT,
+        objet VARCHAR(150) NOT NULL,
         description TEXT NOT NULL,
-        status ENUM('pending', 'in_progress', 'resolved', 'closed') DEFAULT 'pending',
-        response TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL
+        type ENUM('eau', 'electricite') NOT NULL,
+        status ENUM('en attente', 'en cours', 'résolue', 'rejetée') DEFAULT 'en attente',
+        created_at DATETIME NOT NULL,
+        created_by INT(11) NOT NULL,
+        assigned_to INT(11),
+        FOREIGN KEY (created_by) REFERENCES srmdb.users(id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_to) REFERENCES srmdb.users(id) ON DELETE SET NULL
       )
     `;
     
     await pool.query(createTableQuery);
-    console.log('✅ Table complaints créée avec succès');
+    console.log('✅ Table reclamations créée avec succès');
     
     // Création des index
     const indexes = [
-      'CREATE INDEX IF NOT EXISTS idx_complaints_user_id ON complaints(user_id)',
-      'CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status)',
-      'CREATE INDEX IF NOT EXISTS idx_complaints_created_at ON complaints(created_at)'
+      'CREATE INDEX IF NOT EXISTS idx_reclamations_created_by ON srmdb.reclamations(created_by)',
+      'CREATE INDEX IF NOT EXISTS idx_reclamations_status ON srmdb.reclamations(status)',
+      'CREATE INDEX IF NOT EXISTS idx_reclamations_created_at ON srmdb.reclamations(created_at)'
     ];
     
     for (const indexQuery of indexes) {
@@ -51,4 +49,4 @@ async function setupComplaintsTable() {
   }
 }
 
-setupComplaintsTable(); 
+setupComplaintsTable();

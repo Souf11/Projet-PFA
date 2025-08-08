@@ -1,0 +1,116 @@
+.status-history-container {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.status-history-container h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.status-history-timeline {
+  position: relative;
+  padding-left: 30px;
+}
+
+.status-history-timeline::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #e0e0e0;
+}
+
+.status-history-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.status-history-item:last-child {
+  margin-bottom: 0;
+}
+
+.status-history-dot {
+  position: absolute;
+  left: -30px;
+  top: 5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #3498db;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #3498db;
+}
+
+.status-history-content {
+  background-color: #fff;
+  padding: 12px 15px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.status-change {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.old-status {
+  color: #95a5a6;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: #f5f5f5;
+  font-size: 14px;
+}
+
+.arrow {
+  margin: 0 10px;
+  color: #7f8c8d;
+}
+
+.new-status {
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: #3498db;
+  font-size: 14px;
+}
+
+.status-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.changed-by {
+  font-weight: 500;
+}
+
+.changed-at {
+  font-style: italic;
+}
+
+.status-history-loading,
+.status-history-error,
+.status-history-empty {
+  padding: 15px;
+  text-align: center;
+  color: #7f8c8d;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.status-history-error {
+  color: #e74c3c;
+}

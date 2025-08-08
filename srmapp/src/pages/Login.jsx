@@ -32,8 +32,10 @@ export default function Login() {
       // Redirect based on role
       if (data.user.role === 'admin') {
         navigate('/admin');
-      } else if (data.user.role === 'collaborator') {
-        navigate('/collaborator');
+      } else if (data.user.role === 'technicien') {
+          navigate('/technicien');
+      } else if (data.user.role === 'agent') {
+          navigate('/agent');
       } else {
         navigate('/home');
       }

@@ -1,0 +1,750 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const AgentNavbar = ({ view, setView }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  return (
+    <nav style={{
+      backgroundColor: '#2c3e50',
+      color: 'white',
+      padding: '1rem 2rem',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      width: '100%',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1000
+    }}>
+      <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+        SRM - Espace Agent
+      </div>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <button 
+          onClick={() => setView('complaints')}
+          style={{
+            backgroundColor: view === 'complaints' ? '#3498db' : 'transparent',
+            color: 'white',
+            border: '1px solid white',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: '600'
+          }}
+        >
+          Réclamations
+        </button>
+        <button 
+          onClick={handleLogout}
+          style={{
+            backgroundColor: '#e74c3c',
+            color: 'white',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            marginLeft: '10px'
+          }}
+        >
+          Déconnexion
+        </button>
+      </div>
+    </nav>
+  );
+};
+
+function StatusHistory({ reclamationId }) {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`http://localhost:3001/api/complaints/${reclamationId}/status-history`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setHistory(data);
+      } catch (err) {
+        console.error('Erreur chargement historique:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [reclamationId]);
+
+  if (loading) {
+    return <div>Chargement de l'historique...</div>;
+  }
+
+  if (!history || history.length === 0) {
+    return <div>Aucun historique disponible</div>;
+  }
+
+  return (
+    <div>
+      <h3 style={{ marginBottom: '10px' }}>Historique des statuts</h3>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: '#f5f7fa' }}>
+            <th>Date</th>
+            <th>Ancien statut</th>
+            <th>Nouveau statut</th>
+            <th>Modifié par</th>
+          </tr>
+        </thead>
+        <tbody>
+          {history.map((item, index) => (
+            <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+              <td>{new Date(item.changed_at).toLocaleString()}</td>
+              <td>{item.old_status || 'N/A'}</td>
+              <td>{item.new_status}</td>
+              <td>{item.changed_by_name}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [techniciens, setTechniciens] = useState([]);
+  const [selectedTechnicien, setSelectedTechnicien] = useState('');
+  
+  // Déplacer fetchTechniciens en dehors du useEffect pour pouvoir l'appeler ailleurs
+  const fetchTechniciens = async () => {
+    console.log('Executing fetchTechniciens function');
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching techniciens with token:', token ? 'Token exists' : 'No token');
+      
+      // Make sure we're using the correct API URL
+      const apiUrl = 'http://localhost:3001/api/admin/users/techniciens';
+      console.log('Fetching from URL:', apiUrl);
+      
+      // Ajouter un timestamp pour éviter le cache
+      const urlWithTimestamp = `${apiUrl}?_=${new Date().getTime()}`;
+      console.log('Fetching from URL with timestamp:', urlWithTimestamp);
+      
+      // Vider la liste des techniciens avant de faire la requête
+      console.log('Réinitialisation de la liste des techniciens avant la requête');
+      setTechniciens([]);
+      
+      console.log('Envoi de la requête pour récupérer les techniciens...');
+      const res = await fetch(urlWithTimestamp, {
+        method: 'GET', // Explicitement définir la méthode GET en premier
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' // Ajouter Accept header
+        },
+        cache: 'no-store' // Désactiver le cache
+      });
+        
+        console.log('Techniciens API response status:', res.status);
+        
+        if (!res.ok) {
+          console.error('API error response:', res.status, res.statusText);
+          setTechniciens([]);
+          return;
+        }
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError);
+          setTechniciens([]);
+          return;
+        }
+        
+        console.log('Techniciens raw data:', JSON.stringify(data));
+        console.log('Data type:', typeof data);
+        console.log('Is array:', Array.isArray(data));
+        
+        // Ensure techniciens is always an array
+        if (Array.isArray(data)) {
+          console.log('Setting techniciens array with length:', data.length);
+          // Log each technicien to debug
+          data.forEach((tech, index) => {
+            console.log(`Technicien ${index}:`, tech);
+            console.log(`  - ID: ${tech.id}`);
+            console.log(`  - Name: ${tech.name}`);
+            console.log(`  - DisplayName: ${tech.displayName}`);
+            console.log(`  - Prenom: ${tech.prenom}`);
+            console.log(`  - Nom: ${tech.nom}`);
+          });
+          
+          // Vérifier si les données contiennent "Technicien par défaut"
+          const hasDefaultTech = data.some(tech => 
+            tech.displayName === 'Technicien par défaut' || 
+            tech.name === 'Technicien par défaut'
+          );
+          
+          if (hasDefaultTech) {
+            console.warn('⚠️ ATTENTION: Détection de "Technicien par défaut" dans les données brutes!');
+          }
+          
+          // Créer un nouvel objet pour chaque technicien pour éviter les problèmes de référence
+          const cleanedData = data.map(tech => {
+            // Vérifier si ce technicien est le "Technicien par défaut"
+            const isDefaultTech = tech.displayName === 'Technicien par défaut' || tech.name === 'Technicien par défaut';
+            
+            if (isDefaultTech) {
+              console.warn(`⚠️ Nettoyage du technicien par défaut #${tech.id}:`, tech);
+            }
+            
+            // Construire un meilleur displayName
+            let betterDisplayName = tech.displayName;
+            
+            // Si c'est le technicien par défaut, essayer de construire un meilleur nom
+            if (isDefaultTech && (tech.prenom || tech.nom)) {
+              betterDisplayName = `${tech.prenom || ''} ${tech.nom || ''}`.trim();
+              console.log(`Remplacement du nom par défaut par: ${betterDisplayName}`);
+            } else if (!betterDisplayName && tech.name) {
+              betterDisplayName = tech.name;
+            } else if (!betterDisplayName && tech.prenom && tech.nom) {
+              betterDisplayName = `${tech.prenom} ${tech.nom}`;
+            } else if (!betterDisplayName && tech.prenom) {
+              betterDisplayName = tech.prenom;
+            } else if (!betterDisplayName) {
+              betterDisplayName = `Technicien #${tech.id}`;
+            }
+            
+            return {
+              ...tech,
+              // S'assurer que tous les champs nécessaires sont présents et que l'ID est une chaîne de caractères
+              id: tech.id ? String(tech.id) : Math.random().toString(36).substr(2, 9),
+              displayName: betterDisplayName,
+              // Ajouter un timestamp pour forcer le re-render
+              _timestamp: Date.now()
+            };
+          });
+          
+          console.log('Cleaned techniciens data:', JSON.stringify(cleanedData));
+          setTechniciens(cleanedData);
+        } else if (data && typeof data === 'object') {
+          // If it's an object with a message property, it might be an error
+          if (data.message) {
+            console.error('API returned error message:', data.message);
+            setTechniciens([]);
+          } else {
+            // Try to convert to array if possible
+            const techArray = Object.values(data);
+            console.log('Converted object to array with length:', techArray.length);
+            
+            // Appliquer le même nettoyage
+            const cleanedData = techArray.map(tech => {
+              // Construire un meilleur displayName
+              let betterDisplayName = tech.displayName;
+              
+              if (!betterDisplayName && tech.name) {
+                betterDisplayName = tech.name;
+              } else if (!betterDisplayName && tech.prenom && tech.nom) {
+                betterDisplayName = `${tech.prenom} ${tech.nom}`;
+              } else if (!betterDisplayName && tech.prenom) {
+                betterDisplayName = tech.prenom;
+              } else if (!betterDisplayName) {
+                betterDisplayName = `Technicien #${tech.id}`;
+              }
+              
+              return {
+                ...tech,
+                id: tech.id ? String(tech.id) : Math.random().toString(36).substr(2, 9),
+                displayName: betterDisplayName,
+                _timestamp: Date.now()
+              };
+            });
+            
+            console.log('Cleaned object data:', JSON.stringify(cleanedData));
+            setTechniciens(cleanedData);
+          }
+        } else {
+          console.error('Techniciens data is not an array or object:', data);
+          setTechniciens([]);
+        }
+      } catch (err) {
+        console.error('Erreur chargement techniciens:', err);
+        setTechniciens([]);
+      }
+    };
+
+  // Effet pour réinitialiser le technicien sélectionné quand le modal s'ouvre ou se ferme
+  useEffect(() => {
+    if (selectedComplaint) {
+      console.log('Modal opened, resetting selectedTechnicien and reloading technicians');
+      
+      // Réinitialiser le technicien sélectionné
+      setSelectedTechnicien('');
+      
+      // Forcer un rechargement des techniciens
+      console.log('Forcing technician reload before opening modal');
+      
+      // Vider d'abord la liste des techniciens pour éviter les problèmes de cache
+      setTechniciens([]);
+      
+      // Puis recharger les techniciens avec un délai pour s'assurer que le DOM est mis à jour
+      setTimeout(() => {
+        fetchTechniciens().then(() => {
+          console.log('Technicians reloaded after modal opened');
+        });
+      }, 100);
+    }
+  }, [selectedComplaint]);
+  
+  console.log('État actuel - selectedTechnicien:', selectedTechnicien, 'techniciens:', techniciens);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  // Suppression de l'état techniciensFetched qui n'est plus nécessaire
+
+  // Charger les techniciens immédiatement
+  useEffect(() => {
+    // Charger les techniciens immédiatement
+    fetchTechniciens();
+     
+     // Puis toutes les 10 secondes pour s'assurer que la liste est à jour
+     const intervalId = setInterval(() => {
+       console.log('Interval triggered - reloading techniciens');
+       fetchTechniciens();
+     }, 10000);
+     
+     // Nettoyage à la destruction du composant
+     return () => {
+       clearInterval(intervalId);
+       console.log('Cleaning up techniciens fetch effect');
+     };
+  }, []); // Pas de dépendance pour éviter les boucles infinies
+
+  // Effet pour recharger les techniciens quand le modal s'ouvre
+  useEffect(() => {
+    if (selectedComplaint) {
+      console.log('Modal ouvert - rechargement des techniciens');
+      // Forcer un rechargement des techniciens et attendre la réponse
+      fetchTechniciens().then(() => {
+        console.log('Techniciens rechargés après ouverture du modal');
+        // Forcer une mise à jour du state pour déclencher un re-render
+        setTechniciens(prevTechniciens => [...prevTechniciens]);
+      });
+    }
+  }, [selectedComplaint]);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'en attente': return '#f39c12';
+      case 'en cours': return '#3498db';
+      case 'résolue': return '#27ae60';
+      case 'rejetée': return '#e74c3c';
+      default: return '#95a5a6';
+    }
+  };
+
+  const getTypeLabel = (type) => {
+    return type || 'Standard';
+  };
+
+  const handleAssignTechnicien = async (complaintId) => {
+    console.log('Tentative d\'affectation avec technicien:', selectedTechnicien);
+    console.log('Liste des techniciens disponibles:', JSON.stringify(techniciens));
+    
+    // Trouver le technicien sélectionné dans la liste pour le débogage
+    // Convertir selectedTechnicien en string pour assurer une comparaison correcte
+    const technicienId = String(selectedTechnicien);
+    console.log('Type de selectedTechnicien:', typeof selectedTechnicien);
+    console.log('Type des IDs des techniciens:', techniciens.length > 0 ? typeof techniciens[0].id : 'N/A');
+    
+    const selectedTech = techniciens.find(tech => String(tech.id) === technicienId);
+    console.log('Selected technician details:', selectedTech ? JSON.stringify(selectedTech) : 'Not found');
+    
+    if (!selectedTechnicien) {
+      setError('Veuillez sélectionner un technicien');
+      return;
+    }
+
+    // Handle the fallback case where we might have a 'default' value
+    if (selectedTechnicien === 'default' || selectedTechnicien === '') {
+      setError('Impossible d\'affecter au technicien par défaut. Veuillez réessayer plus tard.');
+      return;
+    }
+    
+    // Vérifier si le technicien sélectionné existe dans la liste
+    if (!selectedTech) {
+      console.error(`Technicien avec ID ${selectedTechnicien} non trouvé dans la liste!`);
+      console.log('Liste complète des techniciens avec leurs IDs:');
+      techniciens.forEach((tech, index) => {
+        console.log(`Technicien #${index}: ID=${tech.id} (${typeof tech.id}), Nom=${tech.displayName}`);
+      });
+      setError('Technicien sélectionné non trouvé. Veuillez rafraîchir et réessayer.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('token');
+      console.log(`Assigning complaint ${complaintId} to technicien ${selectedTechnicien}`);
+      
+      console.log(`Envoi de la requête d'affectation au serveur: ${complaintId} -> ${selectedTechnicien}`);
+      console.log('Payload:', JSON.stringify({ technicien_id: selectedTechnicien }));
+      
+      const res = await fetch(`http://localhost:3001/api/complaints/${complaintId}/assign`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          technicien_id: String(selectedTechnicien),
+          // Ajouter des informations supplémentaires pour le débogage
+          technicien_name: selectedTech ? selectedTech.displayName : null
+        })
+      });
+
+      console.log('Assignment response status:', res.status);
+      
+      let data;
+      try {
+        const textResponse = await res.text();
+        console.log('Raw response text:', textResponse);
+        
+        try {
+          // Essayer de parser la réponse comme JSON
+          data = JSON.parse(textResponse);
+          console.log('Parsed JSON response:', data);
+        } catch (jsonError) {
+          console.error('Response is not valid JSON:', jsonError);
+          // Si ce n'est pas du JSON valide, utiliser le texte brut
+          data = { message: textResponse };
+        }
+      } catch (parseError) {
+        console.error('Error reading response:', parseError);
+        throw new Error('Erreur lors du traitement de la réponse');
+      }
+      
+      if (!res.ok) {
+        console.error('Assignment error:', data);
+        throw new Error(data.message || data.error || 'Erreur lors de l\'affectation');
+      }
+
+      console.log('Assignment successful:', data);
+      setSuccess('Réclamation affectée avec succès');
+      
+      // Mettre à jour la liste des réclamations
+      try {
+        console.log('Appel de fetchComplaints pour rafraîchir les données');
+        await fetchComplaints();
+        console.log('Liste des réclamations mise à jour avec succès');
+      } catch (refreshError) {
+        console.error('Erreur lors du rafraîchissement des réclamations:', refreshError);
+        // Continuer malgré l'erreur de rafraîchissement
+      }
+      
+      // Fermer le modal et réinitialiser les états
+      console.log('Fermeture du modal d\'affectation');
+      setSelectedComplaint(null);
+      setSelectedTechnicien('');
+    } catch (err) {
+      console.error('Assignment error:', err);
+      setError(err.message || 'Erreur lors de l\'affectation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!Array.isArray(complaints)) {
+    return (
+      <div className="card mt-2" style={{ textAlign: 'center' }}>
+        <h2 className="mb-2">Gestion des réclamations</h2>
+        <div>Aucune réclamation trouvée</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card mt-2" style={{ textAlign: 'center' }}>
+      <h2 className="mb-2">Gestion des réclamations</h2>
+      {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
+      {success && <div style={{ color: 'green', marginBottom: '10px' }}>{success}</div>}
+      
+      <div style={{overflowX: 'auto'}}>
+        <table style={{width: '100%', borderCollapse: 'collapse'}}>
+          <thead>
+            <tr style={{background: '#f5f7fa'}}>
+              <th>ID</th>
+              <th>Client</th>
+              <th>Objet</th>
+              <th>Statut</th>
+              <th>Date</th>
+              <th>Technicien</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {complaints.map(complaint => (
+              <tr key={complaint.id} style={{borderBottom: '1px solid #eee'}}>
+                <td style={{textAlign: 'center'}}>{complaint.id}</td>
+                <td style={{textAlign: 'center'}}>{complaint.client_nom || 'N/A'}</td>
+                <td style={{textAlign: 'center'}}>{complaint.objet}</td>
+                <td style={{textAlign: 'center'}}>
+                  <span style={{
+                    backgroundColor: getStatusColor(complaint.status),
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.8rem'
+                  }}>
+                    {complaint.status}
+                  </span>
+                </td>
+                <td style={{textAlign: 'center'}}>{new Date(complaint.created_at).toLocaleDateString()}</td>
+                <td style={{textAlign: 'center'}}>{complaint.assigned_to_name || 'Non assigné'}</td>
+                <td style={{textAlign: 'center'}}>
+                  <button 
+                    onClick={() => {
+                      console.log('Ouverture du modal d\'affectation pour la réclamation:', complaint.id);
+                      // Vider d'abord la liste des techniciens
+                      setTechniciens([]);
+                      // Réinitialiser le technicien sélectionné
+                      setSelectedTechnicien('');
+                      // Ouvrir le modal immédiatement pour une meilleure expérience utilisateur
+                      setSelectedComplaint(complaint);
+                      // Puis forcer un rechargement des techniciens
+                      console.log('Rechargement des techniciens après ouverture du modal');
+                      fetchTechniciens().then(() => {
+                        console.log('Techniciens rechargés avec succès');
+                      }).catch(err => {
+                        console.error('Erreur lors du rechargement des techniciens:', err);
+                      });
+                    }}
+                    style={{
+                      backgroundColor: '#3498db',
+                      color: 'white',
+                      border: 'none',
+                      padding: '5px 10px',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Affecter
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Utiliser un useEffect séparé pour recharger les techniciens quand le modal s'ouvre */}
+      {selectedComplaint && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1001
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '80%',
+            maxWidth: '600px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{marginBottom: '20px'}}>Affecter la réclamation #{selectedComplaint.id}</h3>
+            <div style={{marginBottom: '1rem'}}>
+              <p><strong>Objet:</strong> {selectedComplaint.objet}</p>
+              <p><strong>Description:</strong> {selectedComplaint.description}</p>
+              <p><strong>Statut actuel:</strong> {selectedComplaint.status}</p>
+            </div>
+            
+            <div style={{marginBottom: '1rem', backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '5px'}}>
+              <h4 style={{marginBottom: '10px', borderBottom: '1px solid #dee2e6', paddingBottom: '5px'}}>Informations du client</h4>
+              <p><strong>Nom:</strong> {selectedComplaint.client_nom || 'Non spécifié'}</p>
+              <p><strong>Téléphone:</strong> {selectedComplaint.client_telephone || 'Non spécifié'}</p>
+              <p><strong>Adresse:</strong> {selectedComplaint.client_adresse || 'Non spécifiée'}</p>
+              <p><strong>N° de contrat:</strong> {selectedComplaint.numero_contrat || 'Non spécifié'}</p>
+              <p><strong>Type de service:</strong> {selectedComplaint.type_service || 'Non spécifié'}</p>
+            </div>
+            
+            <div style={{marginBottom: '1rem'}}>
+              <label>Sélectionner un technicien:</label>
+              <select 
+                className="form-select"
+                value={selectedTechnicien} 
+                onChange={(e) => {
+                  const value = e.target.value;
+                  console.log('Technicien sélectionné:', value, 'Type:', typeof value);
+                  // Assurez-vous que la valeur est une chaîne de caractères
+                  setSelectedTechnicien(String(value));
+                }}
+                style={{marginLeft: '10px', padding: '4px', width: '200px'}}
+                disabled={!Array.isArray(techniciens) || techniciens.length === 0}
+                required
+                key={`tech-select-${Date.now()}`}
+              >
+                <option key="empty-option" value="">Sélectionner un technicien...</option>
+                {Array.isArray(techniciens) && techniciens.length > 0 ? (
+                  techniciens.map((tech, index) => {
+                    // Vérifier si le technicien a un displayName valide
+                    const displayName = tech.displayName || 
+                      (tech.prenom && tech.nom ? `${tech.prenom} ${tech.nom}` : 
+                       tech.prenom ? tech.prenom : 
+                       tech.nom ? tech.nom : 
+                       `Technicien #${tech.id}`);
+                    
+                    // Détecter si c'est le technicien par défaut
+                    const isDefaultTech = displayName === 'Technicien par défaut';
+                    
+                    // Générer une clé unique qui ne change pas à chaque rendu
+                    const optionKey = `tech-${tech.id}-${index}`;
+                    
+                    console.log(`Rendering option #${index} for tech #${tech.id}:`);
+                    console.log(`  - DisplayName: ${displayName}`);
+                    console.log(`  - Is Default: ${isDefaultTech}`);
+                    console.log(`  - Option Key: ${optionKey}`);
+                    
+                    return (
+                      <option 
+                        key={optionKey} 
+                        value={String(tech.id)}
+                        className={isDefaultTech ? 'text-warning' : ''}
+                      >
+                        {displayName} (ID: {String(tech.id)})
+                      </option>
+                    );
+                  })
+                ) : (
+                  <option value="">Aucun technicien disponible</option>
+                )}
+              </select>
+                {Array.isArray(techniciens) && techniciens.length === 0 && (
+                <div style={{color: 'orange', marginTop: '5px', fontSize: '0.8rem'}}>
+                  Aucun technicien disponible pour l'affectation
+                </div>
+              )}
+              {!Array.isArray(techniciens) && (
+                <div style={{color: 'red', marginTop: '5px', fontSize: '0.8rem'}}>
+                  Erreur de chargement des techniciens
+                </div>
+              )}
+            </div>
+            
+            <div style={{marginTop: '20px'}}>
+              <StatusHistory reclamationId={selectedComplaint.id} />
+            </div>
+            
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
+              <button 
+                onClick={() => {
+                  setSelectedComplaint(null);
+                  setSelectedTechnicien('');
+                  setError('');
+                  setSuccess('');
+                }}
+                style={{
+                  backgroundColor: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={() => handleAssignTechnicien(selectedComplaint.id)}
+                disabled={loading || !selectedTechnicien}
+                style={{
+                  backgroundColor: loading || !selectedTechnicien ? '#bdc3c7' : '#27ae60',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: loading || !selectedTechnicien ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? 'Affectation...' : 'Affecter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AgentDashboard() {
+  const [view, setView] = useState('complaints');
+  const [loading, setLoading] = useState(true);
+  const [complaints, setComplaints] = useState([]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Fetch complaints
+      try {
+        const complaintsRes = await fetch('http://localhost:3001/api/complaints/admin/all', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (complaintsRes.ok) {
+          const complaintsData = await complaintsRes.json();
+          console.log('Réclamations récupérées:', complaintsData);
+          setComplaints(Array.isArray(complaintsData) ? complaintsData : []);
+        } else {
+          console.error('Erreur lors de la récupération des réclamations:', await complaintsRes.text());
+          setComplaints([]);
+        }
+      } catch (err) {
+        console.error('Error fetching complaints:', err);
+        setComplaints([]);
+      }
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setComplaints([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return (
+    <div>
+      <AgentNavbar view={view} setView={setView} />
+      <div className="container mt-3" style={{ textAlign: 'center', marginTop: '80px' }}>
+        {loading && <div className="card">Chargement...</div>}
+        {!loading && view === 'complaints' && <ComplaintsManagement complaints={complaints} fetchData={fetchData} />}
+      </div>
+    </div>
+  );
+}

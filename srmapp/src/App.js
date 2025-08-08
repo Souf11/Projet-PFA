@@ -8,7 +8,8 @@ import Login from './pages/Login';
 import './assets/styles/global.css';
 import SignUp from './pages/SignUp';
 import AdminDashboard from './pages/AdminDashboard';
-import CollaboratorDashboard from './pages/CollaboratorDashboard';
+import TechnicienDashboard from './pages/TechnicienDashboard';
+import AgentDashboard from './pages/AgentDashboard';
 
 // Composant de protection de route
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -19,11 +20,10 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   return children;
 };
 
-// Composant 404
 const NotFound = () => {
   return (
     <div className="not-found">
-      <h2>404 - Page non trouvée</h2>
+      <h2>Page non trouvée</h2>
       <p>La page que vous cherchez n'existe pas.</p>
     </div>
   );
@@ -32,7 +32,7 @@ const NotFound = () => {
 // Wrapper to conditionally show/hide Navbar
 const AppContent = () => {
   const location = useLocation();
-  const hideNavbarRoutes = ['/login', '/signup', '/admin', '/collaborator'];
+  const hideNavbarRoutes = ['/login', '/signup', '/admin', '/technicien', '/agent'];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
 
   return (
@@ -52,10 +52,17 @@ const AppContent = () => {
             </ProtectedRoute>
           } />
 
-          {/* Collaborator route */}
-          <Route path="/collaborator" element={
-            <ProtectedRoute requiredRole="collaborator">
-              <CollaboratorDashboard />
+          {/* Technicien route */}
+        <Route path="/technicien" element={
+          <ProtectedRoute requiredRole="technicien">
+            <TechnicienDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Agent route */}
+        <Route path="/agent" element={
+          <ProtectedRoute requiredRole="agent">
+            <AgentDashboard />
             </ProtectedRoute>
           } />
 

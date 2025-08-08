@@ -8,6 +8,7 @@ const NewComplaint = () => {
   const [formData, setFormData] = useState({
     type: '',
     invoice_id: '',
+    contrat_numero: '', // Ajout du champ numéro de contrat
     subject: '',
     phone_number: '', // Add phone number field
     description: '',
@@ -51,11 +52,12 @@ const NewComplaint = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          type: formData.type,
           invoice_id: formData.invoice_id || null,
-          subject: formData.subject,
+          contrat_numero: formData.contrat_numero, // Envoi du numéro de contrat
+          objet: formData.subject, // Backend expects 'objet' instead of 'subject'
           phone_number: formData.phone_number || null, // Include phone number
-          description: formData.description
+          description: formData.description,
+          type: formData.type // Envoi du type de réclamation
         })
       });
 
@@ -95,26 +97,37 @@ const NewComplaint = () => {
             required
           >
             <option value="">Sélectionnez un type</option>
-            <option value="facture">Problème avec une facture</option>
-            <option value="service">Problème avec le service</option>
-            <option value="compteur">Problème avec le compteur</option>
-            <option value="autre">Autre</option>
+            <option value="eau">Eau</option>
+            <option value="electricite">Électricité</option>
           </select>
         </div>
 
-        {formData.type === 'facture' && (
-          <div className="form-group">
-            <label htmlFor="invoice_id">Numéro de facture concernée</label>
-            <input
-              type="text"
-              id="invoice_id"
-              name="invoice_id"
-              value={formData.invoice_id}
-              onChange={handleChange}
-              placeholder="Ex: 2023-001"
-            />
-          </div>
-        )}
+        <div className="form-group">
+          <label htmlFor="contrat_numero">Numéro de contrat</label>
+          <input
+            type="text"
+            id="contrat_numero"
+            name="contrat_numero"
+            value={formData.contrat_numero}
+            onChange={handleChange}
+            placeholder="Ex: CONT-2023-001"
+            required
+          />
+          <small>Entrez le numéro de votre contrat pour identifier votre compte</small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="invoice_id">Numéro de facture concernée (optionnel)</label>
+          <input
+            type="text"
+            id="invoice_id"
+            name="invoice_id"
+            value={formData.invoice_id}
+            onChange={handleChange}
+            placeholder="Ex: 2023-001"
+          />
+          <small>Si votre réclamation concerne une facture spécifique</small>
+        </div>
 
         <div className="form-group">
           <label htmlFor="subject">Sujet</label>

@@ -19,8 +19,11 @@ const roleAuth = (allowedRoles) => {
 // Middleware spécifique pour les admins
 const requireAdmin = roleAuth(['admin']);
 
-// Middleware pour les collaborateurs et admins
-const requireCollaborator = roleAuth(['collaborator', 'admin']);
+// Middleware pour les agents et admins
+const requireAgent = roleAuth(['agent', 'admin']);
+
+// Middleware pour les techniciens et admins
+const requireTechnicien = roleAuth(['technicien', 'admin']);
 
 // Middleware pour tous les utilisateurs authentifiés
 const requireAuth = (req, res, next) => {
@@ -33,6 +36,7 @@ const requireAuth = (req, res, next) => {
 module.exports = {
   roleAuth,
   requireAdmin,
-  requireCollaborator,
+  requireAgent,
+  requireTechnicien,
   requireAuth
-}; 
+};

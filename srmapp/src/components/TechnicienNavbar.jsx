@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import '../assets/styles/global.css';
 
-const CollaboratorNavbar = ({ view, setView }) => {
+const TechnicienNavbar = ({ view, setView }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -67,4 +67,4 @@ const CollaboratorNavbar = ({ view, setView }) => {
   );
 };
 
-export default CollaboratorNavbar;
+export default TechnicienNavbar;
