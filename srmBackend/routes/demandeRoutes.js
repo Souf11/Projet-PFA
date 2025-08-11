@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const demandeController = require('../controllers/demandeController');
 const authenticate = require('../middlewares/auth');
-const { requireAdmin, requireTechnicien } = require('../middlewares/roleAuth');
+const { requireAdmin, requireTechnicien, roleAuth, requireAgent } = require('../middlewares/roleAuth');
 
 // Routes pour les demandes de techniciens
 
@@ -13,13 +13,16 @@ router.post('/', authenticate, requireTechnicien, demandeController.createDemand
 // Lister toutes les demandes du technicien connecté
 router.get('/mes-demandes', authenticate, requireTechnicien, demandeController.getTechnicienDemandes);
 
+// Obtenir les demandes pour une réclamation spécifique
+router.get('/reclamation/:reclamationId', authenticate, demandeController.getDemandesByReclamationId);
+
 // Obtenir une demande spécifique
 router.get('/:id', authenticate, demandeController.getDemandeById);
 
 // Mettre à jour le statut d'une demande
 router.put('/:id/status', authenticate, demandeController.updateDemandeStatus);
 
-// Lister toutes les demandes (admin uniquement)
-router.get('/', authenticate, requireAdmin, demandeController.getAllDemandes);
+// Lister toutes les demandes (admin et agent)
+router.get('/', authenticate, requireAgent, demandeController.getAllDemandes);
 
 module.exports = router;

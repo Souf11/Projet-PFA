@@ -104,7 +104,7 @@ const demandeController = {
       }
 
       // Vérifier que l'utilisateur est autorisé à mettre à jour cette demande
-      if (req.user.role !== 'admin' && req.user.id !== demande.demandeur_id) {
+      if (req.user.role !== 'admin' && req.user.role !== 'agent' && req.user.id !== demande.demandeur_id) {
         return res.status(403).json({ message: 'Accès non autorisé pour mettre à jour cette demande' });
       }
 
@@ -136,6 +136,30 @@ const demandeController = {
       res.json(demandes);
     } catch (error) {
       console.error('Erreur récupération demandes:', error);
+      res.status(500).json({ message: 'Erreur serveur' });
+    }
+  },
+  
+  // Obtenir les demandes pour une réclamation spécifique
+  getDemandesByReclamationId: async (req, res) => {
+    try {
+      const { reclamationId } = req.params;
+      
+      // Vérifier que la réclamation existe
+      const [reclamation] = await pool.query(
+        'SELECT * FROM srmdb.reclamations WHERE id = ?',
+        [reclamationId]
+      );
+
+      if (reclamation.length === 0) {
+        return res.status(404).json({ message: 'Réclamation non trouvée' });
+      }
+      
+      const demandes = await Demande.findByReclamationId(reclamationId);
+
+      res.json(demandes);
+    } catch (error) {
+      console.error('Erreur récupération demandes par réclamation:', error);
       res.status(500).json({ message: 'Erreur serveur' });
     }
   }

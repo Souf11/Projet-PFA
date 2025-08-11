@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DemandesAgentManagement from '../components/DemandesAgentManagement';
 
 const AgentNavbar = ({ view, setView }) => {
   const navigate = useNavigate();
@@ -43,6 +44,20 @@ const AgentNavbar = ({ view, setView }) => {
           }}
         >
           Réclamations
+        </button>
+        <button 
+          onClick={() => setView('demandes')}
+          style={{
+            backgroundColor: view === 'demandes' ? '#3498db' : 'transparent',
+            color: 'white',
+            border: '1px solid white',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: '600'
+          }}
+        >
+          Gérer les demandes
         </button>
         <button 
           onClick={handleLogout}
@@ -704,6 +719,7 @@ export default function AgentDashboard() {
   const [view, setView] = useState('complaints');
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState([]);
+  const [showDemandesModal, setShowDemandesModal] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -738,6 +754,21 @@ export default function AgentDashboard() {
     fetchData();
   }, []);
 
+  // Effet pour gérer l'affichage du modal des demandes
+  useEffect(() => {
+    if (view === 'demandes') {
+      setShowDemandesModal(true);
+    } else {
+      setShowDemandesModal(false);
+    }
+  }, [view]);
+
+  // Fonction pour fermer le modal des demandes
+  const handleCloseDemandesModal = () => {
+    setShowDemandesModal(false);
+    setView('complaints');
+  };
+
   return (
     <div>
       <AgentNavbar view={view} setView={setView} />
@@ -745,6 +776,11 @@ export default function AgentDashboard() {
         {loading && <div className="card">Chargement...</div>}
         {!loading && view === 'complaints' && <ComplaintsManagement complaints={complaints} fetchData={fetchData} />}
       </div>
+      
+      {/* Modal pour la gestion des demandes */}
+      {showDemandesModal && (
+        <DemandesAgentManagement onClose={handleCloseDemandesModal} />
+      )}
     </div>
   );
 }

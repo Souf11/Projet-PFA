@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import TechnicienNavbar from '../components/TechnicienNavbar';
 import StatusHistory from '../components/StatusHistory';
+import DemandesManagement from '../components/DemandesManagement';
 import '../assets/styles/global.css';
 import '../assets/styles/statusHistory.css';
 
@@ -9,6 +10,8 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
   const [status, setStatus] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDemandes, setShowDemandes] = useState(false);
+  const [selectedReclamationId, setSelectedReclamationId] = useState(null);
 
   const handleStatusChange = async (complaintId) => {
     if (!status) return;
@@ -128,20 +131,55 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
                 </td>
                 <td style={{textAlign: 'center'}}>{new Date(complaint.created_at).toLocaleDateString()}</td>
                 <td style={{textAlign: 'center'}}>
-                  <button 
-                    onClick={() => setSelectedComplaint(complaint)}
-                    style={{
-                      backgroundColor: '#3498db',
-                      color: 'white',
-                      border: 'none',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    Modifier
-                  </button>
+                  <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
+                    <button 
+                      onClick={() => setSelectedComplaint(complaint)}
+                      style={{
+                        backgroundColor: '#3498db',
+                        color: 'white',
+                        border: 'none',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      Modifier
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedComplaint({...complaint, viewHistoryOnly: true});
+                      }}
+                      style={{
+                        backgroundColor: '#f39c12',
+                        color: 'white',
+                        border: 'none',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      Historique
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedReclamationId(complaint.id);
+                        setShowDemandes(true);
+                      }}
+                      style={{
+                        backgroundColor: '#27ae60',
+                        color: 'white',
+                        border: 'none',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      Demander
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -150,6 +188,16 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
       </div>
 
       {/* Modal for updating complaint */}
+      {showDemandes && selectedReclamationId && (
+        <DemandesManagement 
+          reclamationId={selectedReclamationId} 
+          onClose={() => {
+            setShowDemandes(false);
+            setSelectedReclamationId(null);
+          }} 
+        />
+      )}
+      
       {selectedComplaint && (
         <div style={{
           position: 'fixed',
@@ -170,60 +218,68 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
             width: '90%',
             maxWidth: '500px'
           }}>
-            <h3>Modifier la réclamation #{selectedComplaint.id}</h3>
-            <div style={{marginBottom: '1rem'}}>
-              <strong>Client:</strong>
-              <div style={{marginTop: '4px', marginLeft: '8px', textAlign: 'left'}}>
-                <div><strong>Nom:</strong> {selectedComplaint.client_nom || 'N/A'}</div>
-                <div><strong>Téléphone:</strong> {selectedComplaint.client_telephone || 'N/A'}</div>
-                <div><strong>Adresse:</strong> {selectedComplaint.client_adresse || 'N/A'}</div>
+            <h3>{selectedComplaint.viewHistoryOnly ? 'Historique des statuts' : `Modifier la réclamation #${selectedComplaint.id}`}</h3>
+            
+            {!selectedComplaint.viewHistoryOnly && (
+              <>
+                <div style={{marginBottom: '1rem'}}>
+                  <strong>Client:</strong>
+                  <div style={{marginTop: '4px', marginLeft: '8px', textAlign: 'left'}}>
+                    <div><strong>Nom:</strong> {selectedComplaint.client_nom || 'N/A'}</div>
+                    <div><strong>Téléphone:</strong> {selectedComplaint.client_telephone || 'N/A'}</div>
+                    <div><strong>Adresse:</strong> {selectedComplaint.client_adresse || 'N/A'}</div>
+                  </div>
+                </div>
+                <div style={{marginBottom: '1rem'}}>
+                  <strong>Objet:</strong> {selectedComplaint.objet}
+                </div>
+                <div style={{marginBottom: '1rem'}}>
+                  <strong>Utilisateur:</strong> {selectedComplaint.created_by_name}
+                </div>
+                <div style={{marginBottom: '1rem'}}>
+                  <strong>Type:</strong> {getTypeLabel(selectedComplaint.type)}
+                </div>
+                <div style={{marginBottom: '1rem'}}>
+                  <strong>Description:</strong> {selectedComplaint.description}
+                </div>
+                <div style={{marginBottom: '1rem'}}>
+                  <label>Nouveau statut:</label>
+                  <select 
+                    value={status} 
+                    onChange={(e) => setStatus(e.target.value)}
+                    style={{marginLeft: '10px', padding: '4px'}}
+                  >
+                    <option value="">Sélectionner...</option>
+                    <option value="en attente">En attente</option>
+                    <option value="en cours">En cours</option>
+                    <option value="résolue">Résolue</option>
+                    <option value="rejetée">Rejetée</option>
+                  </select>
+                </div>
+                <div style={{marginBottom: '1rem'}}>
+                  <label>Réponse:</label>
+                  <textarea 
+                    value={response} 
+                    onChange={(e) => setResponse(e.target.value)}
+                    placeholder="Tapez votre réponse ici..."
+                    style={{
+                      width: '100%',
+                      height: '100px',
+                      marginTop: '5px',
+                      padding: '8px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+              </>
+            )}
+            
+            {selectedComplaint.viewHistoryOnly && (
+              <div style={{marginTop: '20px'}}>
+                <StatusHistory reclamationId={selectedComplaint.id} />
               </div>
-            </div>
-            <div style={{marginBottom: '1rem'}}>
-              <strong>Objet:</strong> {selectedComplaint.objet}
-            </div>
-            <div style={{marginBottom: '1rem'}}>
-              <strong>Utilisateur:</strong> {selectedComplaint.created_by_name}
-            </div>
-            <div style={{marginBottom: '1rem'}}>
-              <strong>Type:</strong> {getTypeLabel(selectedComplaint.type)}
-            </div>
-            <div style={{marginBottom: '1rem'}}>
-              <strong>Description:</strong> {selectedComplaint.description}
-            </div>
-            <div style={{marginBottom: '1rem'}}>
-              <label>Nouveau statut:</label>
-              <select 
-                value={status} 
-                onChange={(e) => setStatus(e.target.value)}
-                style={{marginLeft: '10px', padding: '4px'}}
-              >
-                <option value="">Sélectionner...</option>
-                <option value="en attente">En attente</option>
-                <option value="en cours">En cours</option>
-                <option value="résolue">Résolue</option>
-                <option value="rejetée">Rejetée</option>
-              </select>
-            </div>
-            <div style={{marginBottom: '1rem'}}>
-              <label>Réponse:</label>
-              <textarea 
-                value={response} 
-                onChange={(e) => setResponse(e.target.value)}
-                placeholder="Tapez votre réponse ici..."
-                style={{
-                  width: '100%',
-                  height: '100px',
-                  marginTop: '5px',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
-            <div style={{marginTop: '20px'}}>
-              <StatusHistory reclamationId={selectedComplaint.id} />
-            </div>
+            )}
             
             <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
               <button 
@@ -241,22 +297,24 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
                   cursor: 'pointer'
                 }}
               >
-                Annuler
+                {selectedComplaint.viewHistoryOnly ? 'Fermer' : 'Annuler'}
               </button>
-              <button 
-                onClick={() => handleStatusChange(selectedComplaint.id)}
-                disabled={loading || !status}
-                style={{
-                  backgroundColor: loading || !status ? '#bdc3c7' : '#27ae60',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: loading || !status ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {loading ? 'Mise à jour...' : 'Mettre à jour'}
-              </button>
+              {!selectedComplaint.viewHistoryOnly && (
+                <button 
+                  onClick={() => handleStatusChange(selectedComplaint.id)}
+                  disabled={loading || !status}
+                  style={{
+                    backgroundColor: loading || !status ? '#bdc3c7' : '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    cursor: loading || !status ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loading ? 'Mise à jour...' : 'Mettre à jour'}
+                </button>
+              )}
             </div>
           </div>
         </div>
