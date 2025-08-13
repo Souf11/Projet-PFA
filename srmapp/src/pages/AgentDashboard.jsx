@@ -141,6 +141,10 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [techniciens, setTechniciens] = useState([]);
   const [selectedTechnicien, setSelectedTechnicien] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('tous'); // Ajout du filtre par statut
   
   // Déplacer fetchTechniciens en dehors du useEffect pour pouvoir l'appeler ailleurs
   const fetchTechniciens = async () => {
@@ -175,75 +179,47 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
         console.log('Techniciens API response status:', res.status);
         
         if (!res.ok) {
-          console.error('API error response:', res.status, res.statusText);
-          setTechniciens([]);
-          return;
+          throw new Error(`Erreur API: ${res.status}`);
         }
         
+        // Essayer de lire la réponse comme JSON
         let data;
         try {
-          data = await res.json();
+          const textResponse = await res.text();
+          console.log('Raw response text:', textResponse);
+          
+          try {
+            // Essayer de parser la réponse comme JSON
+            data = JSON.parse(textResponse);
+            console.log('Parsed JSON response:', data);
+          } catch (jsonError) {
+            console.error('Response is not valid JSON:', jsonError);
+            // Si ce n'est pas du JSON valide, utiliser le texte brut
+            throw new Error('Réponse invalide du serveur');
+          }
         } catch (parseError) {
-          console.error('Error parsing JSON response:', parseError);
-          setTechniciens([]);
-          return;
+          console.error('Error reading response:', parseError);
+          throw new Error('Erreur lors du traitement de la réponse');
         }
         
-        console.log('Techniciens raw data:', JSON.stringify(data));
-        console.log('Data type:', typeof data);
-        console.log('Is array:', Array.isArray(data));
-        
-        // Ensure techniciens is always an array
+        // Traiter les données reçues
         if (Array.isArray(data)) {
-          console.log('Setting techniciens array with length:', data.length);
-          // Log each technicien to debug
-          data.forEach((tech, index) => {
-            console.log(`Technicien ${index}:`, tech);
-            console.log(`  - ID: ${tech.id}`);
-            console.log(`  - Name: ${tech.name}`);
-            console.log(`  - DisplayName: ${tech.displayName}`);
-            console.log(`  - Prenom: ${tech.prenom}`);
-            console.log(`  - Nom: ${tech.nom}`);
-          });
+          console.log('Received techniciens array with length:', data.length);
           
-          // Vérifier si les données contiennent "Technicien par défaut"
-          const hasDefaultTech = data.some(tech => 
-            tech.displayName === 'Technicien par défaut' || 
-            tech.name === 'Technicien par défaut'
-          );
-          
-          if (hasDefaultTech) {
-            console.warn('⚠️ ATTENTION: Détection de "Technicien par défaut" dans les données brutes!');
-          }
-          
-          // Créer un nouvel objet pour chaque technicien pour éviter les problèmes de référence
+          // Nettoyer les données pour s'assurer qu'elles sont utilisables
           const cleanedData = data.map(tech => {
-            // Vérifier si ce technicien est le "Technicien par défaut"
-            const isDefaultTech = tech.displayName === 'Technicien par défaut' || tech.name === 'Technicien par défaut';
-            
-            if (isDefaultTech) {
-              console.warn(`⚠️ Nettoyage du technicien par défaut #${tech.id}:`, tech);
-            }
-            
             // Construire un meilleur displayName
             let betterDisplayName = tech.displayName;
             
-            // Si c'est le technicien par défaut, essayer de construire un meilleur nom
-            if (isDefaultTech && (tech.prenom || tech.nom)) {
-              betterDisplayName = `${tech.prenom || ''} ${tech.nom || ''}`.trim();
-              console.log(`Remplacement du nom par défaut par: ${betterDisplayName}`);
-            } else if (!betterDisplayName && tech.name) {
+            if (!betterDisplayName && tech.name) {
               betterDisplayName = tech.name;
             } else if (!betterDisplayName && tech.prenom && tech.nom) {
               betterDisplayName = `${tech.prenom} ${tech.nom}`;
-            } else if (!betterDisplayName && tech.prenom) {
-              betterDisplayName = tech.prenom;
             } else if (!betterDisplayName) {
               betterDisplayName = `Technicien #${tech.id}`;
             }
             
             return {
-              ...tech,
               // S'assurer que tous les champs nécessaires sont présents et que l'ID est une chaîne de caractères
               id: tech.id ? String(tech.id) : Math.random().toString(36).substr(2, 9),
               displayName: betterDisplayName,
@@ -273,135 +249,48 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
                 betterDisplayName = tech.name;
               } else if (!betterDisplayName && tech.prenom && tech.nom) {
                 betterDisplayName = `${tech.prenom} ${tech.nom}`;
-              } else if (!betterDisplayName && tech.prenom) {
-                betterDisplayName = tech.prenom;
               } else if (!betterDisplayName) {
                 betterDisplayName = `Technicien #${tech.id}`;
               }
               
               return {
-                ...tech,
                 id: tech.id ? String(tech.id) : Math.random().toString(36).substr(2, 9),
                 displayName: betterDisplayName,
                 _timestamp: Date.now()
               };
             });
             
-            console.log('Cleaned object data:', JSON.stringify(cleanedData));
+            console.log('Cleaned techniciens data from object:', JSON.stringify(cleanedData));
             setTechniciens(cleanedData);
           }
         } else {
-          console.error('Techniciens data is not an array or object:', data);
+          console.error('Unexpected data format:', data);
           setTechniciens([]);
         }
-      } catch (err) {
-        console.error('Erreur chargement techniciens:', err);
-        setTechniciens([]);
-      }
-    };
-
-  // Effet pour réinitialiser le technicien sélectionné quand le modal s'ouvre ou se ferme
-  useEffect(() => {
-    if (selectedComplaint) {
-      console.log('Modal opened, resetting selectedTechnicien and reloading technicians');
-      
-      // Réinitialiser le technicien sélectionné
-      setSelectedTechnicien('');
-      
-      // Forcer un rechargement des techniciens
-      console.log('Forcing technician reload before opening modal');
-      
-      // Vider d'abord la liste des techniciens pour éviter les problèmes de cache
+    } catch (err) {
+      console.error('Error fetching techniciens:', err);
       setTechniciens([]);
-      
-      // Puis recharger les techniciens avec un délai pour s'assurer que le DOM est mis à jour
-      setTimeout(() => {
-        fetchTechniciens().then(() => {
-          console.log('Technicians reloaded after modal opened');
-        });
-      }, 100);
-    }
-  }, [selectedComplaint]);
-  
-  console.log('État actuel - selectedTechnicien:', selectedTechnicien, 'techniciens:', techniciens);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  // Suppression de l'état techniciensFetched qui n'est plus nécessaire
-
-  // Charger les techniciens immédiatement
-  useEffect(() => {
-    // Charger les techniciens immédiatement
-    fetchTechniciens();
-     
-     // Puis toutes les 10 secondes pour s'assurer que la liste est à jour
-     const intervalId = setInterval(() => {
-       console.log('Interval triggered - reloading techniciens');
-       fetchTechniciens();
-     }, 10000);
-     
-     // Nettoyage à la destruction du composant
-     return () => {
-       clearInterval(intervalId);
-       console.log('Cleaning up techniciens fetch effect');
-     };
-  }, []); // Pas de dépendance pour éviter les boucles infinies
-
-  // Effet pour recharger les techniciens quand le modal s'ouvre
-  useEffect(() => {
-    if (selectedComplaint) {
-      console.log('Modal ouvert - rechargement des techniciens');
-      // Forcer un rechargement des techniciens et attendre la réponse
-      fetchTechniciens().then(() => {
-        console.log('Techniciens rechargés après ouverture du modal');
-        // Forcer une mise à jour du state pour déclencher un re-render
-        setTechniciens(prevTechniciens => [...prevTechniciens]);
-      });
-    }
-  }, [selectedComplaint]);
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'en attente': return '#f39c12';
-      case 'en cours': return '#3498db';
-      case 'résolue': return '#27ae60';
-      case 'rejetée': return '#e74c3c';
-      default: return '#95a5a6';
     }
   };
 
-  const getTypeLabel = (type) => {
-    return type || 'Standard';
-  };
-
+  // Fonction pour assigner un technicien à une réclamation
   const handleAssignTechnicien = async (complaintId) => {
-    console.log('Tentative d\'affectation avec technicien:', selectedTechnicien);
-    console.log('Liste des techniciens disponibles:', JSON.stringify(techniciens));
+    console.log(`Assigning technicien to complaint ${complaintId}`);
+    console.log(`Selected technicien ID: ${selectedTechnicien}`);
     
-    // Trouver le technicien sélectionné dans la liste pour le débogage
-    // Convertir selectedTechnicien en string pour assurer une comparaison correcte
-    const technicienId = String(selectedTechnicien);
-    console.log('Type de selectedTechnicien:', typeof selectedTechnicien);
-    console.log('Type des IDs des techniciens:', techniciens.length > 0 ? typeof techniciens[0].id : 'N/A');
-    
-    const selectedTech = techniciens.find(tech => String(tech.id) === technicienId);
-    console.log('Selected technician details:', selectedTech ? JSON.stringify(selectedTech) : 'Not found');
-    
+    // Vérifier que le technicien est sélectionné
     if (!selectedTechnicien) {
       setError('Veuillez sélectionner un technicien');
       return;
     }
-
-    // Handle the fallback case where we might have a 'default' value
-    if (selectedTechnicien === 'default' || selectedTechnicien === '') {
-      setError('Impossible d\'affecter au technicien par défaut. Veuillez réessayer plus tard.');
-      return;
-    }
     
-    // Vérifier si le technicien sélectionné existe dans la liste
+    // Trouver le technicien sélectionné dans la liste
+    const selectedTech = techniciens.find(tech => String(tech.id) === String(selectedTechnicien));
+    console.log('Selected technicien object:', selectedTech);
+    
     if (!selectedTech) {
-      console.error(`Technicien avec ID ${selectedTechnicien} non trouvé dans la liste!`);
-      console.log('Liste complète des techniciens avec leurs IDs:');
+      console.error('Selected technicien not found in techniciens list');
+      console.log('Available techniciens:');
       techniciens.forEach((tech, index) => {
         console.log(`Technicien #${index}: ID=${tech.id} (${typeof tech.id}), Nom=${tech.displayName}`);
       });
@@ -485,6 +374,25 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
     }
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'en attente': return '#f39c12';
+      case 'en cours': return '#3498db';
+      case 'résolue': return '#27ae60';
+      case 'rejetée': return '#e74c3c';
+      default: return '#95a5a6';
+    }
+  };
+
+  const getTypeLabel = (type) => {
+    return type || 'Standard';
+  };
+
+  // Filtrer les réclamations selon le statut sélectionné
+  const filteredComplaints = statusFilter === 'tous' 
+    ? complaints 
+    : complaints.filter(complaint => complaint.status === statusFilter);
+
   if (!Array.isArray(complaints)) {
     return (
       <div className="card mt-2" style={{ textAlign: 'center' }}>
@@ -500,6 +408,26 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
       {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
       {success && <div style={{ color: 'green', marginBottom: '10px' }}>{success}</div>}
       
+      {/* Filtre par statut */}
+      <div style={{ marginBottom: '20px', textAlign: 'left', padding: '0 10px' }}>
+        <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Filtrer par statut:</label>
+        <select 
+          value={statusFilter} 
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{
+            padding: '5px 10px',
+            borderRadius: '4px',
+            border: '1px solid #ddd'
+          }}
+        >
+          <option value="tous">Tous les statuts</option>
+          <option value="en attente">En attente</option>
+          <option value="en cours">En cours</option>
+          <option value="résolue">Résolue</option>
+          <option value="rejetée">Rejetée</option>
+        </select>
+      </div>
+      
       <div style={{overflowX: 'auto'}}>
         <table style={{width: '100%', borderCollapse: 'collapse'}}>
           <thead>
@@ -514,7 +442,7 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
             </tr>
           </thead>
           <tbody>
-            {complaints.map(complaint => (
+            {filteredComplaints.map(complaint => (
               <tr key={complaint.id} style={{borderBottom: '1px solid #eee'}}>
                 <td style={{textAlign: 'center'}}>{complaint.id}</td>
                 <td style={{textAlign: 'center'}}>{complaint.client_nom || 'N/A'}</td>

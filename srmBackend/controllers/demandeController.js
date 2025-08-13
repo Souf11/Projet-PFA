@@ -48,7 +48,7 @@ const demandeController = {
     }
   },
 
-  // Lister toutes les demandes du technicien
+  // Lister toutes les demandes créées par le technicien
   getTechnicienDemandes: async (req, res) => {
     try {
       const technicienId = req.user.id;
@@ -58,6 +58,25 @@ const demandeController = {
       res.json(demandes);
     } catch (error) {
       console.error('Erreur récupération demandes:', error);
+      res.status(500).json({ message: 'Erreur serveur' });
+    }
+  },
+  
+  // Lister toutes les demandes assignées au technicien
+  getAssignedDemandes: async (req, res) => {
+    try {
+      const technicienId = req.user.id;
+      
+      // Vérifier que l'utilisateur est un technicien
+      if (req.user.role !== 'technicien' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Accès non autorisé' });
+      }
+      
+      const demandes = await Demande.findByAssignedTechnicienId(technicienId);
+
+      res.json(demandes);
+    } catch (error) {
+      console.error('Erreur récupération demandes assignées:', error);
       res.status(500).json({ message: 'Erreur serveur' });
     }
   },
@@ -74,6 +93,7 @@ const demandeController = {
       }
 
       // Vérifier que l'utilisateur est autorisé à voir cette demande
+      // Un utilisateur peut voir une demande s'il est admin, le créateur de la demande, ou le technicien assigné
       if (req.user.role !== 'admin' && req.user.id !== demande.demandeur_id && req.user.id !== demande.technicien_assigne_id) {
         return res.status(403).json({ message: 'Accès non autorisé à cette demande' });
       }

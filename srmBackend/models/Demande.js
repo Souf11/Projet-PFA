@@ -15,7 +15,7 @@ const Demande = {
     return result.insertId;
   },
 
-  // Trouver toutes les demandes d'un technicien
+  // Trouver toutes les demandes d'un technicien (créées par lui)
   findByTechnicienId: async (technicienId) => {
     const [rows] = await pool.query(
       `SELECT d.*, r.objet as reclamation_objet, u.name as technicien_assigne_name 
@@ -23,6 +23,20 @@ const Demande = {
        JOIN srmdb.reclamations r ON d.reclamation_id = r.id
        LEFT JOIN srmdb.users u ON d.technicien_assigne_id = u.id
        WHERE d.demandeur_id = ?
+       ORDER BY d.created_at DESC`,
+      [technicienId]
+    );
+    return rows;
+  },
+  
+  // Trouver toutes les demandes assignées à un technicien
+  findByAssignedTechnicienId: async (technicienId) => {
+    const [rows] = await pool.query(
+      `SELECT d.*, r.objet as reclamation_objet, u.name as demandeur_name 
+       FROM srmdb.demandes d
+       JOIN srmdb.reclamations r ON d.reclamation_id = r.id
+       JOIN srmdb.users u ON d.demandeur_id = u.id
+       WHERE d.technicien_assigne_id = ?
        ORDER BY d.created_at DESC`,
       [technicienId]
     );

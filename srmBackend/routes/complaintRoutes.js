@@ -16,6 +16,9 @@ router.get('/admin/all', authenticate, requireAgent, complaintController.getAllC
 // Lister toutes les réclamations assignées à un technicien
 router.get('/technicien/assigned', authenticate, requireTechnicien, complaintController.getTechnicienComplaints);
 
+// Lister toutes les réclamations liées aux demandes assignées à un technicien
+router.get('/technicien/demandes-reclamations', authenticate, requireTechnicien, complaintController.getTechnicienDemandeReclamations);
+
 // Routes générales
 
 // Créer une nouvelle réclamation

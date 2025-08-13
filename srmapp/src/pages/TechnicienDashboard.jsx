@@ -338,29 +338,54 @@ export default function TechnicienDashboard() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+      let allComplaints = [];
       
-      // Fetch complaints assigned to the technician
+      // Fetch complaints directly assigned to the technician
       try {
-        const complaintsRes = await fetch('http://localhost:3001/api/complaints/technicien/assigned', {
+        const assignedRes = await fetch('http://localhost:3001/api/complaints/technicien/assigned', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (complaintsRes.ok) {
-          const complaintsData = await complaintsRes.json();
-          console.log('Réclamations assignées récupérées:', complaintsData);
-          setComplaints(Array.isArray(complaintsData) ? complaintsData : []);
+        if (assignedRes.ok) {
+          const assignedData = await assignedRes.json();
+          console.log('Réclamations directement assignées récupérées:', assignedData);
+          allComplaints = Array.isArray(assignedData) ? [...assignedData] : [];
         } else {
-          console.error('Erreur lors de la récupération des réclamations:', await complaintsRes.text());
-          setComplaints([]);
+          console.error('Erreur lors de la récupération des réclamations assignées:', await assignedRes.text());
         }
       } catch (err) {
-        console.error('Error fetching complaints:', err);
-        setComplaints([]);
+        console.error('Error fetching assigned complaints:', err);
       }
-
-
-
-
-
+      
+      // Fetch complaints linked to demands assigned to the technician
+      try {
+        const demandesRes = await fetch('http://localhost:3001/api/complaints/technicien/demandes-reclamations', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (demandesRes.ok) {
+          const demandesData = await demandesRes.json();
+          console.log('Réclamations liées aux demandes récupérées:', demandesData);
+          
+          // Merge complaints, avoiding duplicates by ID
+          if (Array.isArray(demandesData)) {
+            // Create a map of existing complaint IDs
+            const existingIds = new Set(allComplaints.map(c => c.id));
+            
+            // Add only complaints that aren't already in the list
+            demandesData.forEach(complaint => {
+              if (!existingIds.has(complaint.id)) {
+                allComplaints.push(complaint);
+              }
+            });
+          }
+        } else {
+          console.error('Erreur lors de la récupération des réclamations liées aux demandes:', await demandesRes.text());
+        }
+      } catch (err) {
+        console.error('Error fetching complaints linked to demands:', err);
+      }
+      
+      console.log('Total des réclamations récupérées:', allComplaints.length);
+      setComplaints(allComplaints);
     } catch (err) {
       console.error('Error fetching data:', err);
       setComplaints([]);

@@ -146,6 +146,41 @@ const Complaint = {
       [clientId]
     );
     return rows;
+  },
+  
+  // Trouver les réclamations assignées à un technicien
+  findByTechnicianId: async (technicianId) => {
+    const [rows] = await pool.query(
+      `SELECT r.*, u.name as created_by_name, 
+       c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+       ct.numero_contrat, ct.type_service 
+       FROM srmdb.reclamations r
+       JOIN srmdb.users u ON r.created_by = u.id
+       LEFT JOIN srmdb.clients c ON r.client_id = c.id
+       LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+       WHERE r.assigned_to = ?
+       ORDER BY r.created_at DESC`,
+      [technicianId]
+    );
+    return rows;
+  },
+  
+  // Trouver les réclamations liées aux demandes assignées à un technicien
+  findByAssignedDemandesForTechnician: async (technicianId) => {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT r.*, u.name as created_by_name, 
+       c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+       ct.numero_contrat, ct.type_service 
+       FROM srmdb.reclamations r
+       JOIN srmdb.demandes d ON r.id = d.reclamation_id
+       JOIN srmdb.users u ON r.created_by = u.id
+       LEFT JOIN srmdb.clients c ON r.client_id = c.id
+       LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+       WHERE d.technicien_assigne_id = ?
+       ORDER BY r.created_at DESC`,
+      [technicianId]
+    );
+    return rows;
   }
 };
 

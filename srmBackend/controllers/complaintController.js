@@ -104,9 +104,32 @@ const complaintController = {
   getComplaintById: async (req, res) => {
     try {
       const { id } = req.params;
-      const created_by = req.user.id;
+      const userId = req.user.id;
+      const userRole = req.user.role;
 
-      const [rows] = await pool.query(
+      // Vérifier si l'utilisateur est admin ou agent
+      if (userRole === 'admin' || userRole === 'agent') {
+        const [rows] = await pool.query(
+          `SELECT r.*, u.name as assigned_to_name, 
+           c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+           ct.numero_contrat, ct.type_service
+           FROM srmdb.reclamations r
+           LEFT JOIN srmdb.users u ON r.assigned_to = u.id
+           LEFT JOIN srmdb.clients c ON r.client_id = c.id
+           LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+           WHERE r.id = ?`,
+          [id]
+        );
+
+        if (rows.length === 0) {
+          return res.status(404).json({ message: 'Réclamation non trouvée' });
+        }
+
+        return res.json(rows[0]);
+      }
+      
+      // Vérifier si l'utilisateur est le créateur de la réclamation
+      const [creatorRows] = await pool.query(
         `SELECT r.*, u.name as assigned_to_name, 
          c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
          ct.numero_contrat, ct.type_service
@@ -115,14 +138,52 @@ const complaintController = {
          LEFT JOIN srmdb.clients c ON r.client_id = c.id
          LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
          WHERE r.id = ? AND r.created_by = ?`,
-        [id, created_by]
+        [id, userId]
       );
 
-      if (rows.length === 0) {
-        return res.status(404).json({ message: 'Réclamation non trouvée' });
+      if (creatorRows.length > 0) {
+        return res.json(creatorRows[0]);
+      }
+      
+      // Vérifier si l'utilisateur est le technicien assigné à la réclamation
+      const [assignedRows] = await pool.query(
+        `SELECT r.*, u.name as assigned_to_name, 
+         c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+         ct.numero_contrat, ct.type_service
+         FROM srmdb.reclamations r
+         LEFT JOIN srmdb.users u ON r.assigned_to = u.id
+         LEFT JOIN srmdb.clients c ON r.client_id = c.id
+         LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+         WHERE r.id = ? AND r.assigned_to = ?`,
+        [id, userId]
+      );
+
+      if (assignedRows.length > 0) {
+        return res.json(assignedRows[0]);
+      }
+      
+      // Vérifier si l'utilisateur est un technicien assigné à une demande liée à cette réclamation
+      if (userRole === 'technicien') {
+        const [demandeRows] = await pool.query(
+          `SELECT r.*, u.name as assigned_to_name, 
+           c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
+           ct.numero_contrat, ct.type_service
+           FROM srmdb.reclamations r
+           JOIN srmdb.demandes d ON r.id = d.reclamation_id
+           LEFT JOIN srmdb.users u ON r.assigned_to = u.id
+           LEFT JOIN srmdb.clients c ON r.client_id = c.id
+           LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
+           WHERE r.id = ? AND d.technicien_assigne_id = ?`,
+          [id, userId]
+        );
+
+        if (demandeRows.length > 0) {
+          return res.json(demandeRows[0]);
+        }
       }
 
-      res.json(rows[0]);
+      // Si l'utilisateur n'a pas accès à cette réclamation
+      return res.status(403).json({ message: 'Accès non autorisé à cette réclamation' });
     } catch (error) {
       console.error('Erreur récupération réclamation:', error);
       res.status(500).json({ message: 'Erreur serveur' });
@@ -359,22 +420,31 @@ const complaintController = {
       }
 
       // Récupérer les réclamations assignées au technicien
-      const [reclamations] = await pool.query(
-        `SELECT r.*, u1.name as created_by_name,
-         c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
-         ct.numero_contrat, ct.type_service
-         FROM srmdb.reclamations r
-         JOIN srmdb.users u1 ON r.created_by = u1.id
-         LEFT JOIN srmdb.clients c ON r.client_id = c.id
-         LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
-         WHERE r.assigned_to = ?
-         ORDER BY r.created_at DESC`,
-        [technicien_id]
-      );
+      const reclamations = await Complaint.findByTechnicianId(technicien_id);
 
       res.json(reclamations);
     } catch (error) {
       console.error('Erreur récupération réclamations technicien:', error);
+      res.status(500).json({ message: 'Erreur serveur' });
+    }
+  },
+  
+  // Lister toutes les réclamations liées aux demandes assignées à un technicien
+  getTechnicienDemandeReclamations: async (req, res) => {
+    try {
+      const technicien_id = req.user.id;
+      
+      // Vérifier que l'utilisateur est un technicien
+      if (req.user.role !== 'technicien' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Accès non autorisé' });
+      }
+
+      // Récupérer les réclamations liées aux demandes assignées au technicien
+      const reclamations = await Complaint.findByAssignedDemandesForTechnician(technicien_id);
+
+      res.json(reclamations);
+    } catch (error) {
+      console.error('Erreur récupération réclamations liées aux demandes:', error);
       res.status(500).json({ message: 'Erreur serveur' });
     }
   }

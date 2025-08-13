@@ -10,8 +10,11 @@ const { requireAdmin, requireTechnicien, roleAuth, requireAgent } = require('../
 // Créer une nouvelle demande (techniciens uniquement)
 router.post('/', authenticate, requireTechnicien, demandeController.createDemande);
 
-// Lister toutes les demandes du technicien connecté
+// Lister toutes les demandes créées par le technicien connecté
 router.get('/mes-demandes', authenticate, requireTechnicien, demandeController.getTechnicienDemandes);
+
+// Lister toutes les demandes assignées au technicien connecté
+router.get('/assignees', authenticate, requireTechnicien, demandeController.getAssignedDemandes);
 
 // Obtenir les demandes pour une réclamation spécifique
 router.get('/reclamation/:reclamationId', authenticate, demandeController.getDemandesByReclamationId);

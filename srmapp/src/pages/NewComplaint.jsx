@@ -14,6 +14,29 @@ const NewComplaint = () => {
     description: '',
     attachments: [],
   });
+  
+  // Sujets prédéfinis selon le type de réclamation
+  const subjectOptions = {
+    electricite: [
+      'arrachement de cable',
+      'cable en feu',
+      'chute de tension',
+      'compteur brûlé',
+      'compteur volé',
+      'surtension',
+      'verifier compteur'
+    ],
+    eau: [
+      'affaissement',
+      'bouchage reseau assainissement',
+      'casse de conduite',
+      'compteur bloqué',
+      'compteur cassé',
+      'compteur volé',
+      'debordement',
+      'verifier compteur'
+    ]
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -131,15 +154,22 @@ const NewComplaint = () => {
 
         <div className="form-group">
           <label htmlFor="subject">Sujet</label>
-          <input
-            type="text"
+          <select
             id="subject"
             name="subject"
             value={formData.subject}
             onChange={handleChange}
-            placeholder="Décrivez brièvement votre réclamation"
             required
-          />
+          >
+            <option value="">Sélectionnez un sujet</option>
+            {formData.type && subjectOptions[formData.type] ? 
+              subjectOptions[formData.type].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))
+            : null}
+          </select>
         </div>
 
         <div className="form-group">
