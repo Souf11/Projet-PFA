@@ -1,8 +1,28 @@
 import { useNavigate } from 'react-router-dom';
-import '../assets/styles/global.css';
+import { useEffect, useState } from 'react';
+import '../assets/styles/admin-navbar.css';
+import srmlogoIcon from '../assets/icons/srmlogo.webp';
 
 const TechnicienNavbar = ({ view, setView }) => {
   const navigate = useNavigate();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    // Gestion du scroll pour l'effet de transparence
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -11,54 +31,29 @@ const TechnicienNavbar = ({ view, setView }) => {
   };
 
   return (
-    <nav style={{
-      backgroundColor: '#2c3e50',
-      color: 'white',
-      padding: '1rem 2rem',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      width: '100%',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1000
-    }}>
-      <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-        SRM - Collaboration
+    <nav className={`admin-navbar ${isScrolled ? 'scrolled' : ''}`}>
+      <div className="navbar-title">
+        <img src={srmlogoIcon} alt="SRM Logo" className="navbar-logo" />
       </div>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      
+      <div className="navbar-buttons">
         <button 
+          className={`navbar-button ${view === 'complaints' ? 'active' : ''}`}
           onClick={() => setView('complaints')}
-          style={{
-            backgroundColor: view === 'complaints' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
+          data-view="complaints"
         >
           Gérer les réclamations
         </button>
-
-
-
+      </div>
+      
+      <div className="navbar-user">
+        {user && (
+          <span className="user-name">{user.name}</span>
+        )}
         <button 
           onClick={handleLogout}
-          style={{
-            backgroundColor: '#e74c3c',
-            color: 'white',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            marginLeft: '10px'
-          }}
+          className="logout-button"
+          title="Se déconnecter"
         >
           Déconnexion
         </button>

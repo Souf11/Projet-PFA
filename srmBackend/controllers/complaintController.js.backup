@@ -57,9 +57,9 @@ const complaintController = {
       // Insertion dans la base de données
       const [result] = await pool.query(
         `INSERT INTO srmdb.reclamations 
-        (created_by, objet, description, contrat_id, client_id, status, created_at, type, phone_number) 
-        VALUES (?, ?, ?, ?, ?, 'en attente', NOW(), ?, ?)`,
-        [created_by, objet, description, finalContratId || null, finalClientId || null, type || 'standard', phone_number || null]
+        (created_by, objet, description, contrat_id, client_id, status, created_at, type) 
+        VALUES (?, ?, ?, ?, ?, 'en attente', NOW(), ?)`,
+        [created_by, objet, description, finalContratId || null, finalClientId || null, type || 'standard']
       );
 
       // Récupération de la réclamation créée
@@ -93,11 +93,6 @@ const complaintController = {
         [created_by]
       );
 
-      
-      // Ajouter des en-têtes pour éviter la mise en cache
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
       res.json(reclamations);
     } catch (error) {
       console.error('Erreur récupération réclamations:', error);
@@ -313,30 +308,6 @@ const complaintController = {
         new_status: newStatus,
         changed_by: agent_id
       });
-      
-      // Si la réclamation est déjà assignée à un technicien différent,
-      // on ajoute l'ancien technicien à la table reclamation_techniciens
-      // pour qu'il puisse toujours voir la réclamation
-      if (reclamation[0].assigned_to && reclamation[0].assigned_to !== technicien_id) {
-        try {
-          // Importer le modèle ReclamationTechnicien
-          const ReclamationTechnicien = require('../models/ReclamationTechnicien');
-          
-          console.log(`Ajout de l'ancien technicien ${reclamation[0].assigned_to} à la table reclamation_techniciens pour la réclamation ${id}`);
-          
-          // Ajouter l'ancien technicien à la liste des techniciens assignés à cette réclamation
-          await ReclamationTechnicien.addTechnicien(
-            id,
-            reclamation[0].assigned_to,
-            agent_id
-          );
-          
-          console.log(`Ancien technicien ${reclamation[0].assigned_to} ajouté avec succès à la table reclamation_techniciens`);
-        } catch (error) {
-          console.error('Erreur lors de l\'ajout de l\'ancien technicien à la réclamation:', error);
-          // On continue même si l'ajout échoue
-        }
-      }
 
       // Récupérer la réclamation mise à jour avec toutes les informations du client
       const [updated] = await pool.query(
@@ -438,7 +409,7 @@ const complaintController = {
     }
   },
 
-  // Lister toutes les réclamations assignées à un technicien (y compris via la table reclamation_techniciens)
+  // Lister toutes les réclamations assignées à un technicien
   getTechnicienComplaints: async (req, res) => {
     try {
       const technicien_id = req.user.id;
@@ -448,9 +419,8 @@ const complaintController = {
         return res.status(403).json({ message: 'Accès non autorisé' });
       }
 
-      // Récupérer les réclamations assignées au technicien (directement ou via reclamation_techniciens)
+      // Récupérer les réclamations assignées au technicien
       const reclamations = await Complaint.findByTechnicianId(technicien_id);
-      console.log(`Récupération des réclamations pour le technicien ${technicien_id} (y compris via reclamation_techniciens)`);
 
       res.json(reclamations);
     } catch (error) {
@@ -469,12 +439,8 @@ const complaintController = {
         return res.status(403).json({ message: 'Accès non autorisé' });
       }
 
-      console.log(`Récupération des réclamations liées aux demandes pour le technicien ${technicien_id}`);
-      
       // Récupérer les réclamations liées aux demandes assignées au technicien
       const reclamations = await Complaint.findByAssignedDemandesForTechnician(technicien_id);
-      
-      console.log(`Nombre de réclamations liées aux demandes récupérées: ${reclamations.length}`);
 
       res.json(reclamations);
     } catch (error) {

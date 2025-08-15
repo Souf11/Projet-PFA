@@ -1,7 +1,7 @@
 // /src/pages/Complaints.jsx
 import { useState, useEffect } from 'react';
 import ComplaintCard from '../components/ComplaintCard';
-import '../assets/styles/global.css';
+import '../assets/styles/user-dashboard.css';
 import { Link } from 'react-router-dom';
 export default function Complaints() {
   const [complaints, setComplaints] = useState([]);
@@ -44,33 +44,43 @@ export default function Complaints() {
 
   if (loading) {
     return (
-      <div className="container mt-3">
-        <div className="card">
-          <h1 className="mb-2">Mes Réclamations</h1>
-          <div>Chargement...</div>
+      <div className="dashboard-container">
+        <div className="dashboard-content">
+          <div className="loading">
+            <div className="loading-spinner"></div>
+            Chargement de vos réclamations...
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mt-3">
-      <div className="card">
-        <h1 className="mb-2">Mes Réclamations</h1>
-        <Link to="/complaints/new" className="btn btn-primary">
-          Déposer une réclamation
-        </Link>
-        {complaints.length === 0 ? (
-          <div className="text-center">
-            <p>Aucune réclamation trouvée.</p>
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <div className="section-container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h1 className="section-title" style={{ margin: 0 }}>Mes Réclamations</h1>
+            <Link 
+              to="/complaints/new" 
+              className="view-all-btn"
+              style={{ textDecoration: 'none', display: 'inline-block', padding: '0.75rem 1.5rem' }}
+            >
+              Déposer une réclamation
+            </Link>
           </div>
-        ) : (
-          <div className="complaints-grid">
-            {complaints.map(complaint => (
-              <ComplaintCard key={complaint.id} complaint={complaint} />
-            ))}
-          </div>
-        )}
+          {complaints.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray)' }}>
+              <p>Aucune réclamation trouvée.</p>
+            </div>
+          ) : (
+            <div className="complaints-grid">
+              {complaints.map(complaint => (
+                <ComplaintCard key={complaint.id} complaint={complaint} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

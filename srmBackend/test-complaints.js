@@ -4,7 +4,7 @@ const API_BASE_URL = 'http://localhost:3001/api';
 
 // Test user credentials
 const testUser = {
-  email: 'test@example.com',
+  email: 'test@test.com',
   password: 'password123'
 };
 
@@ -24,7 +24,7 @@ async function testComplaints() {
     console.log('2. Creating a new complaint...');
     const newComplaint = {
       type: 'facture',
-      subject: 'Problème avec ma facture',
+      objet: 'Problème avec ma facture',
       description: 'Je n\'ai pas reçu ma facture du mois dernier et j\'aimerais la recevoir par email.'
     };
 
@@ -82,4 +82,4 @@ async function testComplaints() {
 }
 
 // Run the test
-testComplaints(); 
+testComplaints();

@@ -1,10 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../assets/styles/global.css';
+import '../assets/styles/admin-navbar.css';
+import srmlogoIcon from '../assets/icons/srmlogo.webp';
 
-export default function AgentNavbar({ onViewChange }) {
+export default function AgentNavbar({ view, setView }) {
   const navigate = useNavigate();
-  const [activeButton, setActiveButton] = useState('complaints');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    // Gestion du scroll pour l'effet de transparence
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -12,25 +30,42 @@ export default function AgentNavbar({ onViewChange }) {
     navigate('/login');
   };
 
-  const handleButtonClick = (view) => {
-    setActiveButton(view);
-    onViewChange(view);
-  };
-
   return (
-    <div className="admin-navbar">
-      <div className="navbar-title">Tableau de bord Agent</div>
+    <nav className={`admin-navbar ${isScrolled ? 'scrolled' : ''}`}>
+      <div className="navbar-title">
+        <img src={srmlogoIcon} alt="SRM Logo" className="navbar-logo" />
+      </div>
+      
       <div className="navbar-buttons">
-        <button
-          className={activeButton === 'complaints' ? 'active' : ''}
-          onClick={() => handleButtonClick('complaints')}
+        <button 
+          className={`navbar-button ${view === 'complaints' ? 'active' : ''}`}
+          onClick={() => setView('complaints')}
+          data-view="complaints"
         >
           Voir les réclamations
         </button>
+        
+        <button 
+          className={`navbar-button ${view === 'demandes' ? 'active' : ''}`}
+          onClick={() => setView('demandes')}
+          data-view="demandes"
+        >
+          Gérer les demandes
+        </button>
       </div>
-      <button className="logout-button" onClick={handleLogout}>
-        Déconnexion
-      </button>
-    </div>
+      
+      <div className="navbar-user">
+        {user && (
+          <span className="user-name">{user.name}</span>
+        )}
+        <button 
+          onClick={handleLogout} 
+          className="logout-button"
+          title="Se déconnecter"
+        >
+          Déconnexion
+        </button>
+      </div>
+    </nav>
   );
 }

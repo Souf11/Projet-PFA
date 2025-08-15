@@ -1,9 +1,11 @@
+require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 
 const FIXED_ADMIN_EMAIL = 'admin@srm.ma';
 const FIXED_ADMIN_PASSWORD = 'admin123'; // In production, use env vars!
+const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here';
 
 const register = async (req, res) => {
   try {
@@ -55,7 +57,7 @@ const register = async (req, res) => {
 
     const token = jwt.sign(
       { id: userId, email, role: 'utilisateur' },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: '1h' }
     );
 
@@ -90,7 +92,7 @@ const login = async (req, res) => {
       console.log('Fixed admin login matched!');
       const token = jwt.sign(
         { id: 0, email: FIXED_ADMIN_EMAIL, role: 'admin' },
-        process.env.JWT_SECRET,
+        JWT_SECRET,
         { expiresIn: '1h' }
       );
       return res.json({
@@ -144,7 +146,7 @@ const login = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: '1h' }
     );
 

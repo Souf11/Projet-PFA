@@ -10,6 +10,8 @@ const DemandesAgentManagement = ({ onClose }) => {
   const [statusUpdate, setStatusUpdate] = useState('');
   const [reponse, setReponse] = useState('');
   const [filter, setFilter] = useState('all');
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [reassignTechnicien, setReassignTechnicien] = useState('');
 
   // Fetch all demandes (for agent)
   const fetchDemandes = async () => {
@@ -100,6 +102,47 @@ const DemandesAgentManagement = ({ onClose }) => {
     setLoading(false);
   };
 
+  // Réaffecter une réclamation à un autre technicien via une demande
+  const reassignComplaint = async (e) => {
+    e.preventDefault();
+    if (!selectedDemande || !reassignTechnicien) return;
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Mettre à jour la demande avec le nouveau technicien assigné
+      // Cela permettra de garder la réclamation visible pour les deux techniciens
+      const res = await fetch(`http://localhost:3001/api/demandes/${selectedDemande.id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          status: 'approuvee',
+          technicien_assigne_id: reassignTechnicien,
+          reponse: 'Réaffectation à un autre technicien tout en gardant la visibilité pour le technicien original.'
+        })
+      });
+
+      if (res.ok) {
+        // Fermer le modal et rafraîchir les données
+        setShowReassignModal(false);
+        setReassignTechnicien('');
+        fetchDemandes();
+        alert('Demande réaffectée avec succès. La réclamation reste visible pour les deux techniciens.');
+      } else {
+        const errorData = await res.json();
+        alert('Erreur: ' + (errorData.message || 'Une erreur est survenue'));
+      }
+    } catch (err) {
+      console.error('Erreur:', err);
+      alert('Erreur lors de la réaffectation de la demande');
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     fetchDemandes();
     fetchTechniciens();
@@ -107,10 +150,10 @@ const DemandesAgentManagement = ({ onClose }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'en_attente': return '#f39c12';
-      case 'approuvee': return '#3498db';
-      case 'rejetee': return '#e74c3c';
-      case 'terminee': return '#27ae60';
+      case 'en_attente': return 'var(--warning)';
+      case 'approuvee': return 'var(--primary)';
+      case 'rejetee': return 'var(--danger)';
+      case 'terminee': return 'var(--success)';
       default: return '#95a5a6';
     }
   };
@@ -203,6 +246,24 @@ const DemandesAgentManagement = ({ onClose }) => {
             {selectedDemande.materiel_demande && (
               <div style={{ marginBottom: '15px' }}>
                 <strong>Matériel demandé:</strong> {selectedDemande.materiel_demande}
+              </div>
+            )}
+            {selectedDemande.type_demande === 'assistance_technicien' && selectedDemande.reclamation_id && (
+              <div style={{ marginBottom: '15px' }}>
+                <button 
+                  type="button"
+                  onClick={() => setShowReassignModal(true)}
+                  style={{
+                    backgroundColor: '#2980b9',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ajouter un technicien à la réclamation
+                </button>
               </div>
             )}
             <form onSubmit={updateDemandeStatus}>
@@ -353,6 +414,83 @@ const DemandesAgentManagement = ({ onClose }) => {
           )}
         </div>
       </div>
+
+      {/* Modal de réaffectation */}
+      {showReassignModal && selectedDemande && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1002
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '500px'
+          }}>
+            <h3>Ajouter un technicien à la réclamation</h3>
+            <p>Veuillez sélectionner un technicien supplémentaire pour cette réclamation. La réclamation restera visible pour les deux techniciens.</p>
+            
+            <form onSubmit={reassignComplaint}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px' }}>Nouveau technicien:</label>
+                <select 
+                  value={reassignTechnicien}
+                  onChange={(e) => setReassignTechnicien(e.target.value)}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                  required
+                >
+                  <option value="">Sélectionner un technicien</option>
+                  {techniciens.map(tech => (
+                    <option key={tech.id} value={tech.id}>
+                      {tech.displayName || tech.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button"
+                  onClick={() => setShowReassignModal(false)}
+                  style={{
+                    backgroundColor: '#95a5a6',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Annuler
+                </button>
+                <button 
+                  type="submit"
+                  disabled={loading || !reassignTechnicien}
+                  style={{
+                    backgroundColor: loading || !reassignTechnicien ? '#bdc3c7' : '#3498db',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    cursor: loading || !reassignTechnicien ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loading ? 'Traitement...' : 'Ajouter le technicien'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

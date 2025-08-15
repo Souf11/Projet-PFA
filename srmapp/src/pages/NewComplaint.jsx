@@ -1,13 +1,14 @@
 // /src/pages/NewComplaint.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import '../assets/styles/user-dashboard.css';
+import '../assets/styles/complaints.css';
 import '../assets/styles/newComplaint.css';
 
 const NewComplaint = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     type: '',
-    invoice_id: '',
     contrat_numero: '', // Ajout du champ numéro de contrat
     subject: '',
     phone_number: '', // Add phone number field
@@ -75,7 +76,6 @@ const NewComplaint = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          invoice_id: formData.invoice_id || null,
           contrat_numero: formData.contrat_numero, // Envoi du numéro de contrat
           objet: formData.subject, // Backend expects 'objet' instead of 'subject'
           phone_number: formData.phone_number || null, // Include phone number
@@ -100,16 +100,20 @@ const NewComplaint = () => {
   };
 
   return (
-    <div className="new-complaint-page">
-      <h1>Déposer une réclamation</h1>
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <div className="section-container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h1 className="section-title" style={{ margin: 0 }}>Déposer une réclamation</h1>
+          </div>
+          
+          {error && (
+            <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>
+              {error}
+            </div>
+          )}
 
-      {error && (
-        <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="complaint-form">
+          <form onSubmit={handleSubmit} className="complaint-form">
         <div className="form-group">
           <label htmlFor="type">Type de réclamation</label>
           <select
@@ -118,6 +122,7 @@ const NewComplaint = () => {
             value={formData.type}
             onChange={handleChange}
             required
+            className="form-control"
           >
             <option value="">Sélectionnez un type</option>
             <option value="eau">Eau</option>
@@ -135,22 +140,12 @@ const NewComplaint = () => {
             onChange={handleChange}
             placeholder="Ex: CONT-2023-001"
             required
+            className="form-control"
           />
           <small>Entrez le numéro de votre contrat pour identifier votre compte</small>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="invoice_id">Numéro de facture concernée (optionnel)</label>
-          <input
-            type="text"
-            id="invoice_id"
-            name="invoice_id"
-            value={formData.invoice_id}
-            onChange={handleChange}
-            placeholder="Ex: 2023-001"
-          />
-          <small>Si votre réclamation concerne une facture spécifique</small>
-        </div>
+
 
         <div className="form-group">
           <label htmlFor="subject">Sujet</label>
@@ -160,6 +155,7 @@ const NewComplaint = () => {
             value={formData.subject}
             onChange={handleChange}
             required
+            className="form-control"
           >
             <option value="">Sélectionnez un sujet</option>
             {formData.type && subjectOptions[formData.type] ? 
@@ -182,6 +178,7 @@ const NewComplaint = () => {
             onChange={handleChange}
             placeholder="Ex: +33 1 23 45 67 89"
             required
+            className="form-control"
           />
           <small>Votre numéro de téléphone pour vous contacter</small>
         </div>
@@ -196,6 +193,7 @@ const NewComplaint = () => {
             rows="5"
             placeholder="Décrivez en détail votre réclamation..."
             required
+            className="form-control"
           ></textarea>
         </div>
 
@@ -207,6 +205,7 @@ const NewComplaint = () => {
             name="attachments"
             onChange={handleFileChange}
             multiple
+            className="form-control"
           />
           <small>Vous pouvez joindre jusqu'à 5 fichiers (PDF, JPG, PNG)</small>
         </div>
@@ -214,16 +213,23 @@ const NewComplaint = () => {
         <div className="form-actions">
           <button
             type="button"
-            className="btn btn-outline"
+            className="filter-btn"
             onClick={() => navigate(-1)}
           >
             Annuler
           </button>
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+          <button 
+            type="submit" 
+            className="view-all-btn" 
+            style={{ textDecoration: 'none', display: 'inline-block', padding: '0.75rem 1.5rem', border: 'none', cursor: 'pointer' }}
+            disabled={isSubmitting}
+          >
             {isSubmitting ? 'Envoi en cours...' : 'Soumettre la réclamation'}
           </button>
         </div>
       </form>
+        </div>
+      </div>
     </div>
   );
 };

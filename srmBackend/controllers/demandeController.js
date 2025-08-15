@@ -110,6 +110,7 @@ const demandeController = {
     try {
       const { id } = req.params;
       const { status, technicien_assigne_id, reponse } = req.body;
+      const agent_id = req.user.id;
 
       // Validation des données
       if (!status) {
@@ -134,6 +135,25 @@ const demandeController = {
       // Ajouter une réponse si fournie
       if (reponse) {
         await Demande.addResponse(id, reponse);
+      }
+      
+      // Si c'est une demande d'assistance technicien et qu'on assigne un technicien,
+      // on ajoute le technicien à la table reclamation_techniciens pour qu'il puisse voir la réclamation
+      if (demande.type_demande === 'assistance_technicien' && technicien_assigne_id && demande.reclamation_id) {
+        try {
+          // Importer le modèle ReclamationTechnicien
+          const ReclamationTechnicien = require('../models/ReclamationTechnicien');
+          
+          // Ajouter le technicien à la liste des techniciens assignés à cette réclamation
+          await ReclamationTechnicien.addTechnicien(
+            demande.reclamation_id,
+            technicien_assigne_id,
+            agent_id
+          );
+        } catch (error) {
+          console.error('Erreur lors de l\'ajout du technicien à la réclamation:', error);
+          // On continue même si l'ajout échoue
+        }
       }
 
       // Récupérer la demande mise à jour

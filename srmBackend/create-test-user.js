@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const pool = require('./config/db');
 
 async function createTestUser() {
@@ -21,7 +21,7 @@ async function createTestUser() {
     
     // Créer l'utilisateur
     await pool.query(
-      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
+      'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)',
       ['test@test.com', hashedPassword, 'Utilisateur Test']
     );
     
@@ -36,4 +36,4 @@ async function createTestUser() {
   }
 }
 
-createTestUser(); 
+createTestUser();

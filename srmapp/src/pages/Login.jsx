@@ -9,7 +9,7 @@ import eyeIcon from '../assets/icons/eye.svg';
 import eyeOffIcon from '../assets/icons/eye-off.svg';
 import googleIcon from '../assets/icons/google.svg';
 import facebookIcon from '../assets/icons/facebook.svg';
-import srmlogoIcon from '../assets/icons/srmlogo.jpg';
+import srmlogoIcon from '../assets/icons/srmlogo.webp';
 
 export default function Login() {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -108,6 +108,9 @@ export default function Login() {
     <div className="login-container">
       <div className="login-image-side">
         <div className="login-image-overlay">
+          <div className="login-image-logo">
+            <img src={srmlogoIcon} alt="SRM Logo" />
+          </div>
           <h1 className="login-image-title">Société Régionale Multiservices</h1>
           <p className="login-image-subtitle">
             Bienvenue sur notre plateforme de gestion des réclamations.

@@ -89,10 +89,10 @@ const DemandesManagement = ({ reclamationId, onClose }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'en_attente': return '#f39c12';
-      case 'approuvee': return '#3498db';
-      case 'rejetee': return '#e74c3c';
-      case 'terminee': return '#27ae60';
+      case 'en_attente': return 'var(--warning)';
+      case 'approuvee': return 'var(--primary)';
+      case 'rejetee': return 'var(--danger)';
+      case 'terminee': return 'var(--success)';
       default: return '#95a5a6';
     }
   };

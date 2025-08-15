@@ -148,38 +148,65 @@ const Complaint = {
     return rows;
   },
   
-  // Trouver les réclamations assignées à un technicien
+  // Trouver les réclamations assignées à un technicien (y compris via la table reclamation_techniciens)
   findByTechnicianId: async (technicianId) => {
+    console.log(`Recherche des réclamations pour le technicien ${technicianId} (directement assignées ou via reclamation_techniciens)`);
+    
+    // Vérifier d'abord si le technicien est présent dans la table reclamation_techniciens
+    const [techCheck] = await pool.query(
+      `SELECT * FROM srmdb.reclamation_techniciens WHERE technicien_id = ?`,
+      [technicianId]
+    );
+    console.log(`Nombre d'entrées dans reclamation_techniciens pour ce technicien: ${techCheck.length}`);
+    if (techCheck.length > 0) {
+      console.log('IDs des réclamations associées:', techCheck.map(t => t.reclamation_id).join(', '));
+    }
+    
     const [rows] = await pool.query(
-      `SELECT r.*, u.name as created_by_name, 
+      `SELECT DISTINCT r.*, 
+       u1.name as created_by_name,
+       u2.name as assigned_to_name,
        c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
        ct.numero_contrat, ct.type_service 
        FROM srmdb.reclamations r
-       JOIN srmdb.users u ON r.created_by = u.id
+       JOIN srmdb.users u1 ON r.created_by = u1.id
+       LEFT JOIN srmdb.users u2 ON r.assigned_to = u2.id
        LEFT JOIN srmdb.clients c ON r.client_id = c.id
        LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
-       WHERE r.assigned_to = ?
+       LEFT JOIN srmdb.reclamation_techniciens rt ON r.id = rt.reclamation_id
+       WHERE r.assigned_to = ? OR rt.technicien_id = ?
        ORDER BY r.created_at DESC`,
-      [technicianId]
+      [technicianId, technicianId]
     );
+    
+    console.log(`Nombre de réclamations trouvées: ${rows.length}`);
+    if (rows.length > 0) {
+      console.log('IDs des réclamations trouvées:', rows.map(r => r.id).join(', '));
+    }
+    
     return rows;
   },
   
   // Trouver les réclamations liées aux demandes assignées à un technicien
   findByAssignedDemandesForTechnician: async (technicianId) => {
+    console.log(`Recherche des réclamations liées aux demandes pour le technicien ${technicianId}`);
     const [rows] = await pool.query(
-      `SELECT DISTINCT r.*, u.name as created_by_name, 
+      `SELECT DISTINCT r.*, 
+       u1.name as created_by_name,
+       u2.name as assigned_to_name,
        c.nom as client_nom, c.telephone as client_telephone, c.adresse as client_adresse,
        ct.numero_contrat, ct.type_service 
        FROM srmdb.reclamations r
        JOIN srmdb.demandes d ON r.id = d.reclamation_id
-       JOIN srmdb.users u ON r.created_by = u.id
+       JOIN srmdb.users u1 ON r.created_by = u1.id
+       LEFT JOIN srmdb.users u2 ON r.assigned_to = u2.id
        LEFT JOIN srmdb.clients c ON r.client_id = c.id
        LEFT JOIN srmdb.contrats ct ON r.contrat_id = ct.id
        WHERE d.technicien_assigne_id = ?
        ORDER BY r.created_at DESC`,
       [technicianId]
     );
+    console.log(`Nombre de réclamations liées aux demandes trouvées: ${rows.length}`);
     return rows;
   }
 };

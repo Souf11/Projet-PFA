@@ -1,8 +1,41 @@
 import { useNavigate } from 'react-router-dom';
-import '../assets/styles/global.css';
+import { useEffect, useState } from 'react';
+import '../assets/styles/admin-navbar.css';
+import srmlogoIcon from '../assets/icons/srmlogo.webp';
 
 const AdminNavbar = ({ view, setView }) => {
   const navigate = useNavigate();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [user, setUser] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    // Gestion du scroll pour l'effet de transparence
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Fermer les dropdowns quand on clique à l'extérieur
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.dropdown-container')) {
+        setActiveDropdown(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -10,122 +43,130 @@ const AdminNavbar = ({ view, setView }) => {
     navigate('/login');
   };
 
+  const toggleDropdown = (dropdownName) => {
+    setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName);
+  };
+
+  const handleDropdownItemClick = (newView) => {
+    setView(newView);
+    setActiveDropdown(null);
+  };
+
+  const getInitials = (name) => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
   return (
-    <nav style={{
-      backgroundColor: '#2c3e50',
-      color: 'white',
-      padding: '1rem 2rem',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      width: '100%',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1000
-    }}>
-      <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-        SRM - Administration
+    <nav className={`admin-navbar ${isScrolled ? 'scrolled' : ''}`}>
+      <div className="navbar-title">
+        <img src={srmlogoIcon} alt="SRM Logo" className="navbar-logo" />
       </div>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      
+      <div className="navbar-buttons">
+        {/* Bouton Accueil */}
         <button 
-          onClick={() => setView('users')}
-          style={{
-            backgroundColor: view === 'users' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
+          className={`navbar-button ${view === 'home' ? 'active' : ''}`}
+          onClick={() => setView('home')}
+          data-view="home"
         >
-          Voir les utilisateurs
+          Accueil
         </button>
+        
+        {/* Menu Gérer Techniciens */}
+        <div className="dropdown-container">
+          <button 
+            className={`navbar-button dropdown-toggle ${activeDropdown === 'techniciens' ? 'active' : ''}`}
+            onClick={() => toggleDropdown('techniciens')}
+            data-view="techniciens"
+          >
+            Gérer Techniciens
+          </button>
+          {activeDropdown === 'techniciens' && (
+            <div className="dropdown-menu">
+              <button 
+                className={`dropdown-item ${view === 'techniciens' ? 'active' : ''}`}
+                onClick={() => handleDropdownItemClick('techniciens')}
+              >
+                👥 Voir les techniciens
+              </button>
+              <button 
+                className={`dropdown-item ${view === 'create-technicien' ? 'active' : ''}`}
+                onClick={() => handleDropdownItemClick('create-technicien')}
+              >
+                ➕ Créer un technicien
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Menu Gérer Agents */}
+        <div className="dropdown-container">
+          <button 
+            className={`navbar-button dropdown-toggle ${activeDropdown === 'agents' ? 'active' : ''}`}
+            onClick={() => toggleDropdown('agents')}
+            data-view="agents"
+          >
+            Gérer Agents
+          </button>
+          {activeDropdown === 'agents' && (
+            <div className="dropdown-menu">
+              <button 
+                className={`dropdown-item ${view === 'agents' ? 'active' : ''}`}
+                onClick={() => handleDropdownItemClick('agents')}
+              >
+                👨‍💼 Voir les agents
+              </button>
+              <button 
+                className={`dropdown-item ${view === 'create-agent' ? 'active' : ''}`}
+                onClick={() => handleDropdownItemClick('create-agent')}
+              >
+                ➕ Créer un agent
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Menu Gérer Utilisateurs */}
+        <div className="dropdown-container">
+          <button 
+            className={`navbar-button dropdown-toggle ${activeDropdown === 'users' ? 'active' : ''}`}
+            onClick={() => toggleDropdown('users')}
+            data-view="users"
+          >
+            Gérer Utilisateurs
+          </button>
+          {activeDropdown === 'users' && (
+            <div className="dropdown-menu">
+              <button 
+                className={`dropdown-item ${view === 'users' ? 'active' : ''}`}
+                onClick={() => handleDropdownItemClick('users')}
+              >
+                👤 Voir les utilisateurs
+              </button>
+              <button 
+                className={`dropdown-item ${view === 'create-user' ? 'active' : ''}`}
+                onClick={() => handleDropdownItemClick('create-user')}
+              >
+                ➕ Créer un utilisateur
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="navbar-user">
+        {user && (
+          <span className="user-name">{user.name}</span>
+        )}
         <button 
-          onClick={() => setView('techniciens')}
-          style={{
-            backgroundColor: view === 'techniciens' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Voir les techniciens
-        </button>
-        <button 
-          onClick={() => setView('agents')}
-          style={{
-            backgroundColor: view === 'agents' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Voir les agents
-        </button>
-        <button 
-          onClick={() => setView('create-technicien')}
-          style={{
-            backgroundColor: view === 'create-technicien' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Créer un technicien
-        </button>
-        <button 
-          onClick={() => setView('create-agent')}
-          style={{
-            backgroundColor: view === 'create-agent' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Créer un agent
-        </button>
-        <button 
-          onClick={() => setView('create-user')}
-          style={{
-            backgroundColor: view === 'create-user' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Créer un utilisateur
-        </button>
-        <button 
-          onClick={handleLogout}
-          style={{
-            backgroundColor: '#e74c3c',
-            color: 'white',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            marginLeft: '10px'
-          }}
+          onClick={handleLogout} 
+          className="logout-button"
+          title="Se déconnecter"
         >
           Déconnexion
         </button>

@@ -3,7 +3,7 @@ const axios = require('axios');
 require('dotenv').config();
 
 // Configuration
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:3001/api';
 let authToken = '';
 let agentId = null;
 let technicienId = null;
@@ -27,6 +27,12 @@ async function login(email, password) {
     throw error;
   }
 }
+
+// Utiliser les identifiants qui fonctionnent
+const testUser = {
+  email: 'test@test.com',
+  password: 'password123'
+};
 
 // Fonction pour créer un client
 async function createClient() {

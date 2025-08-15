@@ -1,83 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DemandesAgentManagement from '../components/DemandesAgentManagement';
-
-const AgentNavbar = ({ view, setView }) => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-
-  return (
-    <nav style={{
-      backgroundColor: '#2c3e50',
-      color: 'white',
-      padding: '1rem 2rem',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      width: '100%',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1000
-    }}>
-      <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-        SRM - Espace Agent
-      </div>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <button 
-          onClick={() => setView('complaints')}
-          style={{
-            backgroundColor: view === 'complaints' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Réclamations
-        </button>
-        <button 
-          onClick={() => setView('demandes')}
-          style={{
-            backgroundColor: view === 'demandes' ? '#3498db' : 'transparent',
-            color: 'white',
-            border: '1px solid white',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Gérer les demandes
-        </button>
-        <button 
-          onClick={handleLogout}
-          style={{
-            backgroundColor: '#e74c3c',
-            color: 'white',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            marginLeft: '10px'
-          }}
-        >
-          Déconnexion
-        </button>
-      </div>
-    </nav>
-  );
-};
+import AgentNavbar from '../components/AgentNavbar';
+import '../assets/styles/agent-dashboard.css';
 
 function StatusHistory({ reclamationId }) {
   const [history, setHistory] = useState([]);
@@ -144,36 +69,32 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('tous'); // Ajout du filtre par statut
+  const [statusFilter, setStatusFilter] = useState('tous');
+
+  const statusColors = {
+    'en attente': 'var(--warning)',
+    'en cours': 'var(--primary)',
+    'résolue': 'var(--success)',
+    'rejetée': 'var(--danger)'
+  };
   
-  // Déplacer fetchTechniciens en dehors du useEffect pour pouvoir l'appeler ailleurs
   const fetchTechniciens = async () => {
     console.log('Executing fetchTechniciens function');
     try {
       const token = localStorage.getItem('token');
       console.log('Fetching techniciens with token:', token ? 'Token exists' : 'No token');
       
-      // Make sure we're using the correct API URL
       const apiUrl = 'http://localhost:3001/api/admin/users/techniciens';
       console.log('Fetching from URL:', apiUrl);
       
-      // Ajouter un timestamp pour éviter le cache
-      const urlWithTimestamp = `${apiUrl}?_=${new Date().getTime()}`;
-      console.log('Fetching from URL with timestamp:', urlWithTimestamp);
-      
-      // Vider la liste des techniciens avant de faire la requête
-      console.log('Réinitialisation de la liste des techniciens avant la requête');
-      setTechniciens([]);
-      
       console.log('Envoi de la requête pour récupérer les techniciens...');
-      const res = await fetch(urlWithTimestamp, {
-        method: 'GET', // Explicitement définir la méthode GET en premier
+      const res = await fetch(apiUrl, {
+        method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json' // Ajouter Accept header
-        },
-        cache: 'no-store' // Désactiver le cache
+          'Accept': 'application/json'
+        }
       });
         
         console.log('Techniciens API response status:', res.status);
@@ -182,19 +103,16 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
           throw new Error(`Erreur API: ${res.status}`);
         }
         
-        // Essayer de lire la réponse comme JSON
         let data;
         try {
           const textResponse = await res.text();
           console.log('Raw response text:', textResponse);
           
           try {
-            // Essayer de parser la réponse comme JSON
             data = JSON.parse(textResponse);
             console.log('Parsed JSON response:', data);
           } catch (jsonError) {
             console.error('Response is not valid JSON:', jsonError);
-            // Si ce n'est pas du JSON valide, utiliser le texte brut
             throw new Error('Réponse invalide du serveur');
           }
         } catch (parseError) {
@@ -202,13 +120,10 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
           throw new Error('Erreur lors du traitement de la réponse');
         }
         
-        // Traiter les données reçues
         if (Array.isArray(data)) {
           console.log('Received techniciens array with length:', data.length);
           
-          // Nettoyer les données pour s'assurer qu'elles sont utilisables
           const cleanedData = data.map(tech => {
-            // Construire un meilleur displayName
             let betterDisplayName = tech.displayName;
             
             if (!betterDisplayName && tech.name) {
@@ -220,10 +135,8 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
             }
             
             return {
-              // S'assurer que tous les champs nécessaires sont présents et que l'ID est une chaîne de caractères
               id: tech.id ? String(tech.id) : Math.random().toString(36).substr(2, 9),
               displayName: betterDisplayName,
-              // Ajouter un timestamp pour forcer le re-render
               _timestamp: Date.now()
             };
           });
@@ -231,18 +144,14 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
           console.log('Cleaned techniciens data:', JSON.stringify(cleanedData));
           setTechniciens(cleanedData);
         } else if (data && typeof data === 'object') {
-          // If it's an object with a message property, it might be an error
           if (data.message) {
             console.error('API returned error message:', data.message);
             setTechniciens([]);
           } else {
-            // Try to convert to array if possible
             const techArray = Object.values(data);
             console.log('Converted object to array with length:', techArray.length);
             
-            // Appliquer le même nettoyage
             const cleanedData = techArray.map(tech => {
-              // Construire un meilleur displayName
               let betterDisplayName = tech.displayName;
               
               if (!betterDisplayName && tech.name) {
@@ -273,18 +182,15 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
     }
   };
 
-  // Fonction pour assigner un technicien à une réclamation
   const handleAssignTechnicien = async (complaintId) => {
     console.log(`Assigning technicien to complaint ${complaintId}`);
     console.log(`Selected technicien ID: ${selectedTechnicien}`);
     
-    // Vérifier que le technicien est sélectionné
     if (!selectedTechnicien) {
       setError('Veuillez sélectionner un technicien');
       return;
     }
     
-    // Trouver le technicien sélectionné dans la liste
     const selectedTech = techniciens.find(tech => String(tech.id) === String(selectedTechnicien));
     console.log('Selected technicien object:', selectedTech);
     
@@ -318,7 +224,6 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
         },
         body: JSON.stringify({ 
           technicien_id: String(selectedTechnicien),
-          // Ajouter des informations supplémentaires pour le débogage
           technicien_name: selectedTech ? selectedTech.displayName : null
         })
       });
@@ -331,12 +236,10 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
         console.log('Raw response text:', textResponse);
         
         try {
-          // Essayer de parser la réponse comme JSON
           data = JSON.parse(textResponse);
           console.log('Parsed JSON response:', data);
         } catch (jsonError) {
           console.error('Response is not valid JSON:', jsonError);
-          // Si ce n'est pas du JSON valide, utiliser le texte brut
           data = { message: textResponse };
         }
       } catch (parseError) {
@@ -352,17 +255,14 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
       console.log('Assignment successful:', data);
       setSuccess('Réclamation affectée avec succès');
       
-      // Mettre à jour la liste des réclamations
       try {
         console.log('Appel de fetchComplaints pour rafraîchir les données');
         await fetchComplaints();
         console.log('Liste des réclamations mise à jour avec succès');
       } catch (refreshError) {
         console.error('Erreur lors du rafraîchissement des réclamations:', refreshError);
-        // Continuer malgré l'erreur de rafraîchissement
       }
       
-      // Fermer le modal et réinitialiser les états
       console.log('Fermeture du modal d\'affectation');
       setSelectedComplaint(null);
       setSelectedTechnicien('');
@@ -375,63 +275,75 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'en attente': return '#f39c12';
-      case 'en cours': return '#3498db';
-      case 'résolue': return '#27ae60';
-      case 'rejetée': return '#e74c3c';
-      default: return '#95a5a6';
-    }
+    return statusColors[status] || '#95a5a6';
   };
 
   const getTypeLabel = (type) => {
     return type || 'Standard';
   };
 
-  // Filtrer les réclamations selon le statut sélectionné
   const filteredComplaints = statusFilter === 'tous' 
     ? complaints 
     : complaints.filter(complaint => complaint.status === statusFilter);
 
   if (!Array.isArray(complaints)) {
     return (
-      <div className="card mt-2" style={{ textAlign: 'center' }}>
-        <h2 className="mb-2">Gestion des réclamations</h2>
-        <div>Aucune réclamation trouvée</div>
+      <div className="complaints-section">
+        <h2 className="section-title">Gestion des réclamations</h2>
+        <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>
+          Aucune réclamation trouvée
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="card mt-2" style={{ textAlign: 'center' }}>
-      <h2 className="mb-2">Gestion des réclamations</h2>
+    <div className="section-container">
+      <h2 className="section-title">Gestion des réclamations</h2>
       {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
       {success && <div style={{ color: 'green', marginBottom: '10px' }}>{success}</div>}
       
-      {/* Filtre par statut */}
-      <div style={{ marginBottom: '20px', textAlign: 'left', padding: '0 10px' }}>
-        <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Filtrer par statut:</label>
-        <select 
-          value={statusFilter} 
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={{
-            padding: '5px 10px',
-            borderRadius: '4px',
-            border: '1px solid #ddd'
-          }}
-        >
-          <option value="tous">Tous les statuts</option>
-          <option value="en attente">En attente</option>
-          <option value="en cours">En cours</option>
-          <option value="résolue">Résolue</option>
-          <option value="rejetée">Rejetée</option>
-        </select>
+      {/* Filtres de statut */}
+      <div className="filter-container">
+        <label className="filter-label">Filtrer par statut :</label>
+        <div className="filter-buttons">
+          <button 
+            className={`filter-btn ${statusFilter === 'tous' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('tous')}
+          >
+            Tous ({complaints.length})
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'en attente' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('en attente')}
+          >
+            En attente ({complaints.filter(c => c.status === 'en attente').length})
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'en cours' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('en cours')}
+          >
+            En cours ({complaints.filter(c => c.status === 'en cours').length})
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'résolue' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('résolue')}
+          >
+            Résolues ({complaints.filter(c => c.status === 'résolue').length})
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'rejetée' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('rejetée')}
+          >
+            Rejetées ({complaints.filter(c => c.status === 'rejetée').length})
+          </button>
+        </div>
       </div>
       
-      <div style={{overflowX: 'auto'}}>
-        <table style={{width: '100%', borderCollapse: 'collapse'}}>
+      <div className="table-container">
+        <table>
           <thead>
-            <tr style={{background: '#f5f7fa'}}>
+            <tr>
               <th>ID</th>
               <th>Client</th>
               <th>Objet</th>
@@ -443,52 +355,38 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
           </thead>
           <tbody>
             {filteredComplaints.map(complaint => (
-              <tr key={complaint.id} style={{borderBottom: '1px solid #eee'}}>
-                <td style={{textAlign: 'center'}}>{complaint.id}</td>
-                <td style={{textAlign: 'center'}}>{complaint.client_nom || 'N/A'}</td>
-                <td style={{textAlign: 'center'}}>{complaint.objet}</td>
-                <td style={{textAlign: 'center'}}>
-                  <span style={{
-                    backgroundColor: getStatusColor(complaint.status),
-                    color: 'white',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.8rem'
-                  }}>
+              <tr key={complaint.id}>
+                <td>{complaint.id}</td>
+                <td>{complaint.client_nom || 'N/A'}</td>
+                <td>{complaint.objet}</td>
+                <td>
+                  <span className="status-badge" style={{ backgroundColor: getStatusColor(complaint.status) }}>
                     {complaint.status}
                   </span>
                 </td>
-                <td style={{textAlign: 'center'}}>{new Date(complaint.created_at).toLocaleDateString()}</td>
-                <td style={{textAlign: 'center'}}>{complaint.assigned_to_name || 'Non assigné'}</td>
-                <td style={{textAlign: 'center'}}>
-                  <button 
-                    onClick={() => {
-                      console.log('Ouverture du modal d\'affectation pour la réclamation:', complaint.id);
-                      // Vider d'abord la liste des techniciens
-                      setTechniciens([]);
-                      // Réinitialiser le technicien sélectionné
-                      setSelectedTechnicien('');
-                      // Ouvrir le modal immédiatement pour une meilleure expérience utilisateur
-                      setSelectedComplaint(complaint);
-                      // Puis forcer un rechargement des techniciens
-                      console.log('Rechargement des techniciens après ouverture du modal');
-                      fetchTechniciens().then(() => {
-                        console.log('Techniciens rechargés avec succès');
-                      }).catch(err => {
-                        console.error('Erreur lors du rechargement des techniciens:', err);
-                      });
-                    }}
-                    style={{
-                      backgroundColor: '#3498db',
-                      color: 'white',
-                      border: 'none',
-                      padding: '5px 10px',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Affecter
-                  </button>
+                <td>{new Date(complaint.created_at).toLocaleDateString()}</td>
+                <td>{complaint.assigned_to_name || 'Non assigné'}</td>
+                <td>
+                  <div className="action-buttons">
+                    <button 
+                      onClick={async () => {
+                        console.log('Ouverture du modal d\'affectation pour la réclamation:', complaint.id);
+                        setSelectedComplaint(complaint);
+                        setSelectedTechnicien('');
+                        
+                        // Charger les techniciens de manière asynchrone
+                        try {
+                          await fetchTechniciens();
+                          console.log('Techniciens rechargés avec succès');
+                        } catch (err) {
+                          console.error('Erreur lors du rechargement des techniciens:', err);
+                        }
+                      }}
+                      className="btn-action btn-affecter"
+                    >
+                      Affecter
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -496,38 +394,25 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
         </table>
       </div>
 
-      {/* Utiliser un useEffect séparé pour recharger les techniciens quand le modal s'ouvre */}
+      {/* Modal pour affecter un technicien */}
       {selectedComplaint && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1001
+        <div className="modal-overlay" onClick={(e) => {
+          // Empêcher la fermeture du modal en cliquant sur l'overlay
+          e.stopPropagation();
         }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            width: '80%',
-            maxWidth: '600px',
-            maxHeight: '80vh',
-            overflowY: 'auto'
+          <div className="modal-content" onClick={(e) => {
+            // Empêcher la fermeture du modal en cliquant sur le contenu
+            e.stopPropagation();
           }}>
-            <h3 style={{marginBottom: '20px'}}>Affecter la réclamation #{selectedComplaint.id}</h3>
-            <div style={{marginBottom: '1rem'}}>
+            <h3 className="modal-title">Affecter la réclamation #{selectedComplaint.id}</h3>
+            <div className="form-group">
               <p><strong>Objet:</strong> {selectedComplaint.objet}</p>
               <p><strong>Description:</strong> {selectedComplaint.description}</p>
               <p><strong>Statut actuel:</strong> {selectedComplaint.status}</p>
             </div>
             
-            <div style={{marginBottom: '1rem', backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '5px'}}>
-              <h4 style={{marginBottom: '10px', borderBottom: '1px solid #dee2e6', paddingBottom: '5px'}}>Informations du client</h4>
+            <div className="form-group" style={{ backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '5px' }}>
+              <h4 style={{ marginBottom: '10px', borderBottom: '1px solid #dee2e6', paddingBottom: '5px' }}>Informations du client</h4>
               <p><strong>Nom:</strong> {selectedComplaint.client_nom || 'Non spécifié'}</p>
               <p><strong>Téléphone:</strong> {selectedComplaint.client_telephone || 'Non spécifié'}</p>
               <p><strong>Adresse:</strong> {selectedComplaint.client_adresse || 'Non spécifiée'}</p>
@@ -535,42 +420,30 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
               <p><strong>Type de service:</strong> {selectedComplaint.type_service || 'Non spécifié'}</p>
             </div>
             
-            <div style={{marginBottom: '1rem'}}>
-              <label>Sélectionner un technicien:</label>
+                        <div className="form-group">
+              <label className="form-label">Sélectionner un technicien:</label>
               <select 
-                className="form-select"
                 value={selectedTechnicien} 
                 onChange={(e) => {
                   const value = e.target.value;
                   console.log('Technicien sélectionné:', value, 'Type:', typeof value);
-                  // Assurez-vous que la valeur est une chaîne de caractères
                   setSelectedTechnicien(String(value));
                 }}
-                style={{marginLeft: '10px', padding: '4px', width: '200px'}}
+                className="form-select"
                 disabled={!Array.isArray(techniciens) || techniciens.length === 0}
                 required
-                key={`tech-select-${Date.now()}`}
               >
-                <option key="empty-option" value="">Sélectionner un technicien...</option>
+                <option value="">Sélectionner un technicien...</option>
                 {Array.isArray(techniciens) && techniciens.length > 0 ? (
                   techniciens.map((tech, index) => {
-                    // Vérifier si le technicien a un displayName valide
                     const displayName = tech.displayName || 
                       (tech.prenom && tech.nom ? `${tech.prenom} ${tech.nom}` : 
                        tech.prenom ? tech.prenom : 
                        tech.nom ? tech.nom : 
                        `Technicien #${tech.id}`);
                     
-                    // Détecter si c'est le technicien par défaut
                     const isDefaultTech = displayName === 'Technicien par défaut';
-                    
-                    // Générer une clé unique qui ne change pas à chaque rendu
                     const optionKey = `tech-${tech.id}-${index}`;
-                    
-                    console.log(`Rendering option #${index} for tech #${tech.id}:`);
-                    console.log(`  - DisplayName: ${displayName}`);
-                    console.log(`  - Is Default: ${isDefaultTech}`);
-                    console.log(`  - Option Key: ${optionKey}`);
                     
                     return (
                       <option 
@@ -602,7 +475,7 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
               <StatusHistory reclamationId={selectedComplaint.id} />
             </div>
             
-            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
+            <div className="modal-actions">
               <button 
                 onClick={() => {
                   setSelectedComplaint(null);
@@ -610,30 +483,369 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
                   setError('');
                   setSuccess('');
                 }}
-                style={{
-                  backgroundColor: '#95a5a6',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
+                className="btn-cancel"
               >
                 Annuler
               </button>
               <button 
                 onClick={() => handleAssignTechnicien(selectedComplaint.id)}
                 disabled={loading || !selectedTechnicien}
-                style={{
-                  backgroundColor: loading || !selectedTechnicien ? '#bdc3c7' : '#27ae60',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: loading || !selectedTechnicien ? 'not-allowed' : 'pointer'
-                }}
+                className="btn-save"
               >
                 {loading ? 'Affectation...' : 'Affecter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DemandesManagement({ demandes, fetchDemandes }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [statusFilter, setStatusFilter] = useState('tous');
+
+  const [selectedDemande, setSelectedDemande] = useState(null);
+  const [selectedAssistanceTechnicien, setSelectedAssistanceTechnicien] = useState('');
+  const [assistanceTechniciens, setAssistanceTechniciens] = useState([]);
+
+  const fetchAssistanceTechniciens = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:3001/api/admin/users/techniciens', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const cleanedData = data.map(tech => ({
+          id: String(tech.id),
+          displayName: tech.displayName || 
+            (tech.prenom && tech.nom ? `${tech.prenom} ${tech.nom}` : 
+             tech.prenom ? tech.prenom : 
+             tech.nom ? tech.nom : 
+             `Technicien #${tech.id}`)
+        }));
+        setAssistanceTechniciens(cleanedData);
+      } else {
+        console.error('Erreur lors de la récupération des techniciens');
+        setAssistanceTechniciens([]);
+      }
+    } catch (err) {
+      console.error('Error fetching assistance techniciens:', err);
+      setAssistanceTechniciens([]);
+    }
+  };
+
+  const handleStatusChange = async (demandeId, newStatus) => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:3001/api/demandes/${demandeId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (res.ok) {
+        setSuccess('Statut mis à jour avec succès');
+        await fetchDemandes();
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Erreur lors de la mise à jour');
+      }
+    } catch (err) {
+      setError(err.message || 'Erreur lors de la mise à jour');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAssistanceRequest = async (demandeId, reclamationId) => {
+    if (!selectedAssistanceTechnicien) {
+      setError('Veuillez sélectionner un technicien pour l\'assistance');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Affecter la réclamation au technicien d'assistance
+      const assignRes = await fetch(`http://localhost:3001/api/complaints/${reclamationId}/assign`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          technicien_id: selectedAssistanceTechnicien,
+          assistance_request: true
+        })
+      });
+
+      if (assignRes.ok) {
+        // Mettre à jour le statut de la demande
+        const statusRes = await fetch(`http://localhost:3001/api/demandes/${demandeId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: 'approuvée' })
+        });
+
+        if (statusRes.ok) {
+          setSuccess('Demande d\'assistance approuvée et technicien affecté avec succès');
+          await fetchDemandes();
+          setSelectedDemande(null);
+          setSelectedAssistanceTechnicien('');
+        } else {
+          throw new Error('Erreur lors de la mise à jour du statut');
+        }
+      } else {
+        throw new Error('Erreur lors de l\'affectation du technicien');
+      }
+    } catch (err) {
+      setError(err.message || 'Erreur lors de la demande d\'assistance');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'en attente': return 'var(--warning)';
+      case 'approuvée': return 'var(--success)';
+      case 'rejetée': return 'var(--danger)';
+      default: return '#95a5a6';
+    }
+  };
+
+  const getTypeLabel = (type) => {
+    switch (type) {
+      case 'assistance_technicien': return 'Assistance technicien';
+      case 'materiel': return 'Matériel';
+      default: return type;
+    }
+  };
+
+  // Filtrer les demandes selon le statut
+  const filteredDemandes = statusFilter === 'tous' 
+    ? demandes 
+    : demandes.filter(demande => demande.status === statusFilter);
+
+  console.log('DemandesManagement - demandes:', demandes);
+  console.log('DemandesManagement - demandes length:', Array.isArray(demandes) ? demandes.length : 'Not array');
+  
+  if (!Array.isArray(demandes)) {
+    return (
+      <div className="section-container">
+        <h2 className="section-title">Gestion des demandes</h2>
+        <div className="no-data">
+          Aucune demande trouvée
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="section-container">
+      <h2 className="section-title">Gestion des demandes</h2>
+      {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
+      {success && <div style={{ color: 'green', marginBottom: '10px' }}>{success}</div>}
+      
+      {/* Filtres de statut */}
+      <div className="filter-container">
+        <label className="filter-label">Filtrer par statut :</label>
+        <div className="filter-buttons">
+          <button 
+            className={`filter-btn ${statusFilter === 'tous' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('tous')}
+          >
+            Tous ({demandes.length})
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'en attente' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('en attente')}
+          >
+            En attente ({demandes.filter(d => d.status === 'en attente').length})
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'approuvée' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('approuvée')}
+          >
+            Approuvées ({demandes.filter(d => d.status === 'approuvée').length})
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'rejetée' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('rejetée')}
+          >
+            Rejetées ({demandes.filter(d => d.status === 'rejetée').length})
+          </button>
+        </div>
+      </div>
+      
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Réclamation</th>
+              <th>Technicien</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Statut</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredDemandes.map(demande => {
+              console.log('Rendering demande:', demande.id, 'Status:', demande.status);
+              return (
+                <tr key={demande.id}>
+                  <td>{demande.reclamation_id}</td>
+                  <td>{demande.demandeur_name || 'N/A'}</td>
+                  <td>{getTypeLabel(demande.type_demande)}</td>
+                  <td>{demande.description}</td>
+                  <td>
+                    <span className="status-badge" style={{ backgroundColor: getStatusColor(demande.status) }}>
+                      {demande.status}
+                    </span>
+                  </td>
+                  <td>{new Date(demande.created_at).toLocaleDateString()}</td>
+                                    <td>
+                    <div className="action-buttons">
+                      {/* Actions selon le type de demande */}
+                      {demande.type_demande === 'assistance_technicien' ? (
+                        // Pour les demandes d'assistance technicien : Affecter/Rejeter
+                        <>
+                          <button 
+                            onClick={() => {
+                              setSelectedDemande(demande);
+                              fetchAssistanceTechniciens();
+                            }}
+                            disabled={loading || demande.status === 'approuvée'}
+                            className={`btn-action btn-assign ${demande.status === 'approuvée' ? 'disabled' : ''}`}
+                          >
+                            Affecter
+                          </button>
+                          <button 
+                            onClick={() => handleStatusChange(demande.id, 'rejetée')}
+                            disabled={loading || demande.status === 'rejetée'}
+                            className={`btn-action btn-reject ${demande.status === 'rejetée' ? 'disabled' : ''}`}
+                          >
+                            Rejeter
+                          </button>
+                        </>
+                      ) : (
+                        // Pour les demandes de matériel : Approuver/Rejeter
+                        <>
+                          <button 
+                            onClick={() => handleStatusChange(demande.id, 'approuvée')}
+                            disabled={loading || demande.status === 'approuvée'}
+                            className={`btn-action btn-approve ${demande.status === 'approuvée' ? 'disabled' : ''}`}
+                          >
+                            Approuver
+                          </button>
+                          <button 
+                            onClick={() => handleStatusChange(demande.id, 'rejetée')}
+                            disabled={loading || demande.status === 'rejetée'}
+                            className={`btn-action btn-reject ${demande.status === 'rejetée' ? 'disabled' : ''}`}
+                          >
+                            Rejeter
+                          </button>
+                        </>
+                      )}
+                      
+                      {/* Afficher le statut actuel */}
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.8)', 
+                        fontSize: '0.75rem',
+                        marginTop: '4px'
+                      }}>
+                        Statut: {demande.status}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal pour affecter un technicien d'assistance */}
+      {selectedDemande && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 className="modal-title">Affecter un technicien d'assistance</h3>
+            <div className="form-group">
+              <p><strong>Réclamation:</strong> #{selectedDemande.reclamation_id}</p>
+              <p><strong>Technicien demandeur:</strong> {selectedDemande.technicien_name}</p>
+              <p><strong>Type de demande:</strong> {selectedDemande.type}</p>
+              <p><strong>Description:</strong> {selectedDemande.description}</p>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Sélectionner un technicien d'assistance:</label>
+              <select 
+                value={selectedAssistanceTechnicien} 
+                onChange={(e) => setSelectedAssistanceTechnicien(e.target.value)}
+                className="form-select"
+                disabled={!Array.isArray(assistanceTechniciens) || assistanceTechniciens.length === 0}
+                required
+              >
+                <option value="">Sélectionner un technicien...</option>
+                {Array.isArray(assistanceTechniciens) && assistanceTechniciens.length > 0 ? (
+                  assistanceTechniciens
+                    .filter(tech => tech.id !== selectedDemande.technicien_id) // Exclure le technicien demandeur
+                    .map((tech) => (
+                      <option key={tech.id} value={tech.id}>
+                        {tech.displayName}
+                      </option>
+                    ))
+                ) : (
+                  <option value="">Aucun technicien disponible</option>
+                )}
+              </select>
+              {Array.isArray(assistanceTechniciens) && assistanceTechniciens.length === 0 && (
+                <div style={{color: 'orange', marginTop: '5px', fontSize: '0.8rem'}}>
+                  Aucun technicien disponible pour l'assistance
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                onClick={() => {
+                  setSelectedDemande(null);
+                  setSelectedAssistanceTechnicien('');
+                  setError('');
+                  setSuccess('');
+                }}
+                className="btn-cancel"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={() => handleAssistanceRequest(selectedDemande.id, selectedDemande.reclamation_id)}
+                disabled={loading || !selectedAssistanceTechnicien}
+                className="btn-save"
+              >
+                {loading ? 'Affectation...' : 'Affecter et Approuver'}
               </button>
             </div>
           </div>
@@ -647,7 +859,44 @@ export default function AgentDashboard() {
   const [view, setView] = useState('complaints');
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState([]);
-  const [showDemandesModal, setShowDemandesModal] = useState(false);
+  const [demandes, setDemandes] = useState([]);
+  const [user, setUser] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Fonctions utilitaires
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return 'Bonjour';
+    if (hour < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  };
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('fr-FR', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const getComplaintsStats = () => {
+    if (!Array.isArray(complaints)) return { total: 0, enAttente: 0, enCours: 0, resolues: 0 };
+    
+    return {
+      total: complaints.length,
+      enAttente: complaints.filter(c => c.status === 'en attente').length,
+      enCours: complaints.filter(c => c.status === 'en cours').length,
+      resolues: complaints.filter(c => c.status === 'résolue').length
+    };
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -678,37 +927,106 @@ export default function AgentDashboard() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Effet pour gérer l'affichage du modal des demandes
-  useEffect(() => {
-    if (view === 'demandes') {
-      setShowDemandesModal(true);
-    } else {
-      setShowDemandesModal(false);
+  const fetchDemandes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching demandes with token:', token ? 'Token exists' : 'No token');
+      
+      const res = await fetch('http://localhost:3001/api/demandes', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      console.log('Demandes API response status:', res.status);
+      
+      if (res.ok) {
+        const demandesData = await res.json();
+        console.log('Demandes récupérées:', demandesData);
+        console.log('Nombre de demandes:', Array.isArray(demandesData) ? demandesData.length : 0);
+        setDemandes(Array.isArray(demandesData) ? demandesData : []);
+      } else {
+        console.error('Erreur lors de la récupération des demandes:', await res.text());
+        setDemandes([]);
+      }
+    } catch (err) {
+      console.error('Error fetching demandes:', err);
+      setDemandes([]);
     }
-  }, [view]);
-
-  // Fonction pour fermer le modal des demandes
-  const handleCloseDemandesModal = () => {
-    setShowDemandesModal(false);
-    setView('complaints');
   };
 
+  useEffect(() => {
+    // Récupérer les données utilisateur
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    // Charger les données
+    fetchData();
+    fetchDemandes();
+
+    // Mettre à jour l'heure en temps réel
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timeInterval);
+  }, []);
+
+  const stats = getComplaintsStats();
+
   return (
-    <div>
+    <div className="dashboard-container">
       <AgentNavbar view={view} setView={setView} />
-      <div className="container mt-3" style={{ textAlign: 'center', marginTop: '80px' }}>
-        {loading && <div className="card">Chargement...</div>}
-        {!loading && view === 'complaints' && <ComplaintsManagement complaints={complaints} fetchData={fetchData} />}
-      </div>
       
-      {/* Modal pour la gestion des demandes */}
-      {showDemandesModal && (
-        <DemandesAgentManagement onClose={handleCloseDemandesModal} />
-      )}
+      <div className="dashboard-content">
+        {/* Section d'accueil */}
+        <header className="dashboard-header">
+          <h1>Bonjour, {user?.name || 'Agent'}</h1>
+          <p className="current-date">{currentTime.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </header>
+
+        {/* Statistiques rapides */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">📊</div>
+            <h3>{stats.total}</h3>
+            <p>Total</p>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">⏳</div>
+            <h3>{stats.enAttente}</h3>
+            <p>En attente</p>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">🔧</div>
+            <h3>{stats.enCours}</h3>
+            <p>En cours</p>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">✅</div>
+            <h3>{stats.resolues}</h3>
+            <p>Résolues</p>
+          </div>
+        </div>
+
+        {/* Section des réclamations */}
+        {loading ? (
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+          </div>
+        ) : view === 'complaints' ? (
+          <ComplaintsManagement 
+            complaints={complaints} 
+            fetchData={fetchData} 
+          />
+        ) : view === 'demandes' ? (
+          <DemandesManagement 
+            demandes={demandes} 
+            fetchDemandes={fetchDemandes} 
+          />
+        ) : null}
+
+      </div>
     </div>
   );
 }

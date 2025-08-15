@@ -1,5 +1,11 @@
 require('dotenv').config();
 
+// Hardcoded database configuration for testing
+process.env.DB_HOST = 'localhost';
+process.env.DB_USER = 'root';
+process.env.DB_PASSWORD = '';
+process.env.DB_NAME = 'srmdb';
+
 console.log('🔍 Vérification de la configuration de la base de données...');
 console.log('DB_HOST:', process.env.DB_HOST || 'Non défini');
 console.log('DB_USER:', process.env.DB_USER || 'Non défini');
@@ -29,4 +35,4 @@ async function testConnection() {
   }
 }
 
-testConnection(); 
+testConnection();

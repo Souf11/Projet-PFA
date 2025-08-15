@@ -22,10 +22,14 @@ const ComplaintCard = ({ complaint }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return '#f39c12';
-      case 'in_progress': return '#3498db';
-      case 'resolved': return '#27ae60';
-      case 'rejected': return '#e74c3c';
+      case 'pending': 
+      case 'en attente': return 'var(--warning)';
+      case 'in_progress':
+      case 'en cours': return 'var(--primary)';
+      case 'resolved':
+      case 'résolue': return 'var(--success)';
+      case 'rejected':
+      case 'rejetée': return 'var(--danger)';
       default: return '#95a5a6';
     }
   };

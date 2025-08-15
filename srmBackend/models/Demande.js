@@ -72,6 +72,11 @@ const Demande = {
     query += ` WHERE id = ?`;
     
     const [result] = await pool.query(query, [status, technicien_assigne_id, id]);
+    
+    // Nous ne mettons pas à jour le champ assigned_to de la réclamation
+    // pour qu'elle reste visible pour le technicien original et le nouveau technicien assigné
+    // La réclamation sera visible pour les deux techniciens dans leurs tableaux de bord respectifs
+    
     return result.affectedRows > 0;
   },
 

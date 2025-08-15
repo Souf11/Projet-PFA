@@ -5,8 +5,8 @@ async function testLogin() {
     console.log('🔐 Test de connexion...');
     
     const response = await axios.post('http://localhost:3001/api/auth/login', {
-      email: 'ana@ana',
-      password: 'ana'  // Try with the email as password
+      email: 'test@test.com',
+      password: 'password123'  // Using the test user credentials
     });
 
     console.log('✅ Connexion réussie!');
@@ -33,8 +33,8 @@ async function testLogin() {
       console.log('🔄 Essai avec un mot de passe différent...');
       try {
         const response2 = await axios.post('http://localhost:3001/api/auth/login', {
-          email: 'ana@ana',
-          password: 'password'
+          email: 'test@test.com',
+          password: 'password123'
         });
         
         console.log('✅ Connexion réussie avec mot de passe alternatif!');
