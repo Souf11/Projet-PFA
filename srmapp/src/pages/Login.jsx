@@ -7,8 +7,6 @@ import emailIcon from '../assets/icons/email.svg';
 import lockIcon from '../assets/icons/lock.svg';
 import eyeIcon from '../assets/icons/eye.svg';
 import eyeOffIcon from '../assets/icons/eye-off.svg';
-import googleIcon from '../assets/icons/google.svg';
-import facebookIcon from '../assets/icons/facebook.svg';
 import srmlogoIcon from '../assets/icons/srmlogo.webp';
 
 export default function Login() {
