@@ -333,7 +333,7 @@
 }
 
 .status-en-cours {
-  background-color: var(--primary);
+  background-color: var(--purple);
   color: white;
 }
 

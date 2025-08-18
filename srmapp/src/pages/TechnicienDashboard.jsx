@@ -14,7 +14,7 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
 
   const statusColors = {
     'en attente': 'var(--warning)',
-    'en cours': 'var(--primary)',
+    'en cours': 'var(--purple)',
     'résolue': 'var(--success)',
     'rejetée': 'var(--danger)'
   };
@@ -146,6 +146,9 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
                     }} className="btn-action btn-request">
                       Demander
                     </button>
+                    <button onClick={() => setSelectedComplaint({...complaint, viewInfoOnly: true})} className="btn-action btn-info">
+                      Infos
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -227,6 +230,37 @@ function ComplaintsManagement({ complaints, onUpdateComplaint, fetchData }) {
             <h3>Historique des statuts - Réclamation #{selectedComplaint.id}</h3>
             <div className="status-history-container">
               <StatusHistory reclamationId={selectedComplaint.id} />
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setSelectedComplaint(null)} className="btn-cancel">
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {selectedComplaint?.viewInfoOnly && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Informations client - Réclamation #{selectedComplaint.id}</h3>
+            <div className="client-info-container">
+              <div className="info-group">
+                <label>Téléphone:</label>
+                <p>{selectedComplaint.client_telephone || 'Non disponible'}</p>
+              </div>
+              <div className="info-group">
+                <label>Adresse:</label>
+                <p>{selectedComplaint.client_adresse || 'Non disponible'}</p>
+              </div>
+              <div className="info-group">
+                <label>Numéro de contrat:</label>
+                <p>{selectedComplaint.numero_contrat || 'Non disponible'}</p>
+              </div>
+              <div className="info-group">
+                <label>Type de contrat:</label>
+                <p>{selectedComplaint.type_service || 'Non disponible'}</p>
+              </div>
             </div>
             <div className="modal-actions">
               <button onClick={() => setSelectedComplaint(null)} className="btn-cancel">

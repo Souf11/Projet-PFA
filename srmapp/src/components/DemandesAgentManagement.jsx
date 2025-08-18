@@ -151,7 +151,7 @@ const DemandesAgentManagement = ({ onClose }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'en_attente': return 'var(--warning)';
-      case 'approuvee': return 'var(--primary)';
+      case 'approuvee': return 'var(--purple)';
       case 'rejetee': return 'var(--danger)';
       case 'terminee': return 'var(--success)';
       default: return '#95a5a6';

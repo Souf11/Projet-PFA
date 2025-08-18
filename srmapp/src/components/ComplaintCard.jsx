@@ -25,7 +25,7 @@ const ComplaintCard = ({ complaint }) => {
       case 'pending': 
       case 'en attente': return 'var(--warning)';
       case 'in_progress':
-      case 'en cours': return 'var(--primary)';
+      case 'en cours': return 'var(--purple)';
       case 'resolved':
       case 'résolue': return 'var(--success)';
       case 'rejected':

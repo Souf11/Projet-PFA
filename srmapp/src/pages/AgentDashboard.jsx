@@ -73,7 +73,7 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
 
   const statusColors = {
     'en attente': 'var(--warning)',
-    'en cours': 'var(--primary)',
+    'en cours': 'var(--purple)',
     'résolue': 'var(--success)',
     'rejetée': 'var(--danger)'
   };
