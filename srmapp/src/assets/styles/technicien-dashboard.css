@@ -269,35 +269,40 @@
 
 /* Ajustement des largeurs de colonnes */
 .table-container th:nth-child(1) { /* Objet */
-  width: 35%; /* Augmente la largeur de la colonne Objet */
+  width: 30%;
   font-weight: 700;
   color: var(--primary);
   text-transform: uppercase;
   letter-spacing: 1px;
   border-bottom: 2px solid var(--primary);
-  padding-right: 3rem; /* Augmente l'espace à droite */
+  padding-right: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.table-container th:nth-child(2) { /* Client */
-  width: 12%;
-  padding-left: 2.5rem; /* Augmente l'espace entre Objet et Client */
-}
-
-.table-container th:nth-child(3) { /* Type */
+.table-container th:nth-child(2) { /* Type */
   width: 10%;
-  padding-left: 1rem;
+  padding: 0 1rem;
+  white-space: nowrap;
 }
 
-.table-container th:nth-child(4) { /* Date */
-  width: 10%;
-  padding-left: 1.5rem;
-  padding-right: 0; /* Supprime l'espace à droite */
+.table-container th:nth-child(3) { /* Client */
+  width: 20%;
+  padding: 0 1rem;
+  white-space: nowrap;
 }
 
-.table-container th:nth-child(5) { /* Statut */
-  width: 10%;
-  padding-left: 0; /* Supprime complètement l'espace entre Date et Statut */
-  text-align: left; /* Aligne le texte à gauche */
+.table-container th:nth-child(4) { /* Statut */
+  width: 15%;
+  padding: 0 1rem;
+  text-align: left;
+}
+
+.table-container th:nth-child(5) { /* Date */
+  width: 15%;
+  padding: 0 1rem;
+  white-space: nowrap;
 }
 
 .table-container td {
@@ -305,6 +310,31 @@
   color: var(--dark);
   border-bottom: 1px solid #f1f5f9;
   font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
+}
+
+.table-container td:first-child {
+  white-space: normal;
+  padding-right: 1rem;
+}
+
+.table-container td:nth-child(2) {
+  padding: 0 1rem;
+}
+
+.table-container td:nth-child(3) {
+  padding: 0 1rem;
+}
+
+.table-container td:nth-child(4) {
+  padding: 0 1rem;
+}
+
+.table-container td:nth-child(5) {
+  padding-left: 0;
 }
 
 /* Mise en évidence de la colonne Objet */
@@ -332,27 +362,6 @@
   transform: scaleX(1);
 }
 
-/* Ajustement des cellules du tableau pour correspondre aux en-têtes */
-.table-container td:nth-child(1) {
-  padding-right: 3rem; /* Augmente l'espace à droite pour la colonne Objet */
-}
-
-.table-container td:nth-child(2) {
-  padding-left: 2.5rem; /* Augmente l'espace entre Objet et Client */
-}
-
-.table-container td:nth-child(3) {
-  padding-left: 1rem; /* Espace entre Client et Type */
-}
-
-.table-container td:nth-child(4) {
-  padding-left: 1.5rem; /* Espace pour Date */
-  padding-right: 0; /* Supprime l'espace à droite */
-}
-
-.table-container td:nth-child(5) {
-  padding-left: 0; /* Supprime l'espace à gauche pour rapprocher Statut de Date */
-}
 
 .table-container td:nth-child(4) { /* Date */
   padding-left: 1.5rem;

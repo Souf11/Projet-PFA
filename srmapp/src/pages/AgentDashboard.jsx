@@ -66,6 +66,7 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [techniciens, setTechniciens] = useState([]);
   const [selectedTechnicien, setSelectedTechnicien] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -179,6 +180,78 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
     } catch (err) {
       console.error('Error fetching techniciens:', err);
       setTechniciens([]);
+    }
+  };
+
+  const handleStatusChange = async (complaintId, newStatus) => {
+    console.log(`Changing status of complaint ${complaintId} to ${newStatus}`);
+    
+    if (!newStatus) {
+      setError('Veuillez sélectionner un statut');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('token');
+      console.log(`Envoi de la requête de modification de statut au serveur: ${complaintId} -> ${newStatus}`);
+      
+      const res = await fetch(`http://localhost:3001/api/complaints/${complaintId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      console.log('Status update response status:', res.status);
+      
+      let data;
+      try {
+        const textResponse = await res.text();
+        console.log('Raw response text:', textResponse);
+        
+        try {
+          data = JSON.parse(textResponse);
+          console.log('Parsed JSON response:', data);
+        } catch (jsonError) {
+          console.error('Response is not valid JSON:', jsonError);
+          data = { message: textResponse };
+        }
+      } catch (parseError) {
+        console.error('Error reading response:', parseError);
+        throw new Error('Erreur lors du traitement de la réponse');
+      }
+      
+      if (!res.ok) {
+        console.error('Status update error:', data);
+        throw new Error(data.message || data.error || 'Erreur lors de la modification du statut');
+      }
+
+      console.log('Status update successful:', data);
+      setSuccess('Statut modifié avec succès');
+      
+      try {
+        console.log('Appel de fetchComplaints pour rafraîchir les données');
+        await fetchComplaints();
+        console.log('Liste des réclamations mise à jour avec succès');
+      } catch (refreshError) {
+        console.error('Erreur lors du rafraîchissement des réclamations:', refreshError);
+      }
+      
+      console.log('Fermeture du modal de modification de statut');
+      setSelectedComplaint(null);
+      setSelectedStatus('');
+    } catch (err) {
+      console.error('Status update error:', err);
+      setError(err.message || 'Erreur lors de la modification du statut');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -386,6 +459,15 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
                     >
                       Affecter
                     </button>
+                    <button 
+                      onClick={() => {
+                        console.log('Ouverture du modal de modification de statut pour la réclamation:', complaint.id);
+                        setSelectedComplaint({...complaint, modalType: 'status'});
+                      }}
+                      className="btn-action btn-modifier"
+                    >
+                      Modifier
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -394,7 +476,7 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
         </table>
       </div>
 
-      {/* Modal pour affecter un technicien */}
+      {/* Modal pour affecter un technicien ou modifier le statut */}
       {selectedComplaint && (
         <div className="modal-overlay" onClick={(e) => {
           // Empêcher la fermeture du modal en cliquant sur l'overlay
@@ -404,7 +486,11 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
             // Empêcher la fermeture du modal en cliquant sur le contenu
             e.stopPropagation();
           }}>
-            <h3 className="modal-title">Affecter la réclamation #{selectedComplaint.id}</h3>
+            <h3 className="modal-title">
+              {selectedComplaint.modalType === 'status' 
+                ? `Modifier le statut de la réclamation #${selectedComplaint.id}` 
+                : `Affecter la réclamation #${selectedComplaint.id}`}
+            </h3>
             <div className="form-group">
               <p><strong>Objet:</strong> {selectedComplaint.objet}</p>
               <p><strong>Description:</strong> {selectedComplaint.description}</p>
@@ -420,56 +506,73 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
               <p><strong>Type de service:</strong> {selectedComplaint.type_service || 'Non spécifié'}</p>
             </div>
             
-                        <div className="form-group">
-              <label className="form-label">Sélectionner un technicien:</label>
-              <select 
-                value={selectedTechnicien} 
-                onChange={(e) => {
-                  const value = e.target.value;
-                  console.log('Technicien sélectionné:', value, 'Type:', typeof value);
-                  setSelectedTechnicien(String(value));
-                }}
-                className="form-select"
-                disabled={!Array.isArray(techniciens) || techniciens.length === 0}
-                required
-              >
-                <option value="">Sélectionner un technicien...</option>
-                {Array.isArray(techniciens) && techniciens.length > 0 ? (
-                  techniciens.map((tech, index) => {
-                    const displayName = tech.displayName || 
-                      (tech.prenom && tech.nom ? `${tech.prenom} ${tech.nom}` : 
-                       tech.prenom ? tech.prenom : 
-                       tech.nom ? tech.nom : 
-                       `Technicien #${tech.id}`);
-                    
-                    const isDefaultTech = displayName === 'Technicien par défaut';
-                    const optionKey = `tech-${tech.id}-${index}`;
-                    
-                    return (
-                      <option 
-                        key={optionKey} 
-                        value={String(tech.id)}
-                        className={isDefaultTech ? 'text-warning' : ''}
-                      >
-                        {displayName} (ID: {String(tech.id)})
-                      </option>
-                    );
-                  })
-                ) : (
-                  <option value="">Aucun technicien disponible</option>
+            {selectedComplaint.modalType === 'status' ? (
+              <div className="form-group">
+                <label className="form-label">Sélectionner un nouveau statut:</label>
+                <select 
+                  value={selectedStatus || selectedComplaint.status} 
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="form-select"
+                  required
+                >
+                  <option value="en attente">En attente</option>
+                  <option value="en cours">En cours</option>
+                  <option value="résolue">Résolue</option>
+                  <option value="rejetée">Rejetée</option>
+                </select>
+              </div>
+            ) : (
+              <div className="form-group">
+                <label className="form-label">Sélectionner un technicien:</label>
+                <select 
+                  value={selectedTechnicien} 
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    console.log('Technicien sélectionné:', value, 'Type:', typeof value);
+                    setSelectedTechnicien(String(value));
+                  }}
+                  className="form-select"
+                  disabled={!Array.isArray(techniciens) || techniciens.length === 0}
+                  required
+                >
+                  <option value="">Sélectionner un technicien...</option>
+                  {Array.isArray(techniciens) && techniciens.length > 0 ? (
+                    techniciens.map((tech, index) => {
+                      const displayName = tech.displayName || 
+                        (tech.prenom && tech.nom ? `${tech.prenom} ${tech.nom}` : 
+                         tech.prenom ? tech.prenom : 
+                         tech.nom ? tech.nom : 
+                         `Technicien #${tech.id}`);
+                      
+                      const isDefaultTech = displayName === 'Technicien par défaut';
+                      const optionKey = `tech-${tech.id}-${index}`;
+                      
+                      return (
+                        <option 
+                          key={optionKey} 
+                          value={String(tech.id)}
+                          className={isDefaultTech ? 'text-warning' : ''}
+                        >
+                          {displayName} (ID: {String(tech.id)})
+                        </option>
+                      );
+                    })
+                  ) : (
+                    <option value="">Aucun technicien disponible</option>
+                  )}
+                </select>
+                  {Array.isArray(techniciens) && techniciens.length === 0 && (
+                  <div style={{color: 'orange', marginTop: '5px', fontSize: '0.8rem'}}>
+                    Aucun technicien disponible pour l'affectation
+                  </div>
                 )}
-              </select>
-                {Array.isArray(techniciens) && techniciens.length === 0 && (
-                <div style={{color: 'orange', marginTop: '5px', fontSize: '0.8rem'}}>
-                  Aucun technicien disponible pour l'affectation
-                </div>
-              )}
-              {!Array.isArray(techniciens) && (
-                <div style={{color: 'red', marginTop: '5px', fontSize: '0.8rem'}}>
-                  Erreur de chargement des techniciens
-                </div>
-              )}
-            </div>
+                {!Array.isArray(techniciens) && (
+                  <div style={{color: 'red', marginTop: '5px', fontSize: '0.8rem'}}>
+                    Erreur de chargement des techniciens
+                  </div>
+                )}
+              </div>
+            )}
             
             <div style={{marginTop: '20px'}}>
               <StatusHistory reclamationId={selectedComplaint.id} />
@@ -480,6 +583,7 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
                 onClick={() => {
                   setSelectedComplaint(null);
                   setSelectedTechnicien('');
+                  setSelectedStatus('');
                   setError('');
                   setSuccess('');
                 }}
@@ -487,13 +591,23 @@ function ComplaintsManagement({ complaints, fetchData: fetchComplaints }) {
               >
                 Annuler
               </button>
-              <button 
-                onClick={() => handleAssignTechnicien(selectedComplaint.id)}
-                disabled={loading || !selectedTechnicien}
-                className="btn-save"
-              >
-                {loading ? 'Affectation...' : 'Affecter'}
-              </button>
+              {selectedComplaint.modalType === 'status' ? (
+                <button 
+                  onClick={() => handleStatusChange(selectedComplaint.id, selectedStatus || selectedComplaint.status)}
+                  disabled={loading || (!selectedStatus && selectedStatus !== '')}
+                  className="btn-save"
+                >
+                  {loading ? 'Modification...' : 'Modifier le statut'}
+                </button>
+              ) : (
+                <button 
+                  onClick={() => handleAssignTechnicien(selectedComplaint.id)}
+                  disabled={loading || !selectedTechnicien}
+                  className="btn-save"
+                >
+                  {loading ? 'Affectation...' : 'Affecter'}
+                </button>
+              )}
             </div>
           </div>
         </div>

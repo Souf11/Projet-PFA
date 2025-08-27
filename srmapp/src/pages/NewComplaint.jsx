@@ -49,13 +49,6 @@ const NewComplaint = () => {
     }));
   };
 
-  const handleFileChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      attachments: Array.from(e.target.files),
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -176,7 +169,7 @@ const NewComplaint = () => {
             name="phone_number"
             value={formData.phone_number}
             onChange={handleChange}
-            placeholder="Ex: +33 1 23 45 67 89"
+            placeholder="Ex: 06 23 45 67 89"
             required
             className="form-control"
           />
@@ -197,18 +190,6 @@ const NewComplaint = () => {
           ></textarea>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="attachments">Pièces jointes (optionnel)</label>
-          <input
-            type="file"
-            id="attachments"
-            name="attachments"
-            onChange={handleFileChange}
-            multiple
-            className="form-control"
-          />
-          <small>Vous pouvez joindre jusqu'à 5 fichiers (PDF, JPG, PNG)</small>
-        </div>
 
         <div className="form-actions">
           <button

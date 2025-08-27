@@ -390,6 +390,12 @@
   background: var(--primary-dark);
 }
 
+.btn-action.btn-modifier {
+  background-color: var(--primary);
+  color: white;
+  margin-left: 5px;
+}
+
 /* Quick Actions */
 .quick-actions {
   background: white;

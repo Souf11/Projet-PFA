@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import '../assets/styles/login.css';
 
 // Import SVG icons
@@ -184,7 +184,7 @@ export default function Login() {
                   />
                   Se souvenir de moi
                 </label>
-                <a href="#" className="forgot-password">Mot de passe oublié?</a>
+                
               </div>
               
               <button 
@@ -198,9 +198,7 @@ export default function Login() {
             </form>
           )}
           
-          <div className="signup-link">
-            Pas encore de compte? <Link to="/signup">Créer un compte</Link>
-          </div>
+          
         </div>
       </div>
     </div>
